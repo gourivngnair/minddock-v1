@@ -4,7 +4,7 @@
  * camelCase TypeScript types used everywhere else in the app.
  */
 import { supabase } from './supabase';
-import type { Task, Appointment, JournalEntry, UserProfile } from '../types';
+import type { Task, Appointment, JournalEntry, UserProfile, EnergyLogEntry, MealEntry, SleepEntry } from '../types';
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
@@ -214,14 +214,116 @@ export async function deleteJournalEntry(entryId: string) {
 }
 
 
+// ─── Energy Logs ──────────────────────────────────────────────────────────────
+
+export async function fetchEnergyLogs(userId: string): Promise<EnergyLogEntry[]> {
+  const { data } = await supabase
+    .from('energy_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    id:        r.id as string,
+    energy:    r.energy as EnergyLogEntry['energy'],
+    note:      r.note as string | undefined,
+    createdAt: r.created_at as string,
+  }));
+}
+
+export async function insertEnergyLog(userId: string, entry: EnergyLogEntry) {
+  await supabase.from('energy_logs').insert({
+    id:         entry.id,
+    user_id:    userId,
+    energy:     entry.energy,
+    note:       entry.note ?? null,
+    created_at: entry.createdAt,
+  });
+}
+
+export async function deleteEnergyLog(id: string) {
+  await supabase.from('energy_logs').delete().eq('id', id);
+}
+
+
+// ─── Meal Logs ────────────────────────────────────────────────────────────────
+
+export async function fetchMealLogs(userId: string): Promise<MealEntry[]> {
+  const { data } = await supabase
+    .from('meal_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    id:          r.id as string,
+    mealType:    r.meal_type as MealEntry['mealType'],
+    description: (r.description as string) ?? '',
+    rating:      r.rating as MealEntry['rating'],
+    createdAt:   r.created_at as string,
+  }));
+}
+
+export async function insertMealLog(userId: string, entry: MealEntry) {
+  await supabase.from('meal_logs').insert({
+    id:          entry.id,
+    user_id:     userId,
+    meal_type:   entry.mealType,
+    description: entry.description,
+    rating:      entry.rating ?? null,
+    created_at:  entry.createdAt,
+  });
+}
+
+export async function deleteMealLog(id: string) {
+  await supabase.from('meal_logs').delete().eq('id', id);
+}
+
+
+// ─── Sleep Logs ───────────────────────────────────────────────────────────────
+
+export async function fetchSleepLogs(userId: string): Promise<SleepEntry[]> {
+  const { data } = await supabase
+    .from('sleep_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    id:        r.id as string,
+    bedtime:   r.bedtime as string,
+    wakeTime:  r.wake_time as string,
+    quality:   r.quality as SleepEntry['quality'],
+    notes:     r.notes as string | undefined,
+    createdAt: r.created_at as string,
+  }));
+}
+
+export async function insertSleepLog(userId: string, entry: SleepEntry) {
+  await supabase.from('sleep_logs').insert({
+    id:         entry.id,
+    user_id:    userId,
+    bedtime:    entry.bedtime,
+    wake_time:  entry.wakeTime,
+    quality:    entry.quality,
+    notes:      entry.notes ?? null,
+    created_at: entry.createdAt,
+  });
+}
+
+export async function deleteSleepLog(id: string) {
+  await supabase.from('sleep_logs').delete().eq('id', id);
+}
+
+
 // ─── Full data load ───────────────────────────────────────────────────────────
 
 export async function loadAllUserData(userId: string) {
-  const [profile, tasks, appointments, journal] = await Promise.all([
+  const [profile, tasks, appointments, journal, energyLogs, mealLogs, sleepLogs] = await Promise.all([
     fetchProfile(userId),
     fetchTasks(userId),
     fetchAppointments(userId),
     fetchJournal(userId),
+    fetchEnergyLogs(userId),
+    fetchMealLogs(userId),
+    fetchSleepLogs(userId),
   ]);
-  return { profile, tasks, appointments, journal };
+  return { profile, tasks, appointments, journal, energyLogs, mealLogs, sleepLogs };
 }

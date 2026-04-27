@@ -114,8 +114,11 @@ export default function AddTaskModal({ onClose }: Props) {
             <select className="input" value={form.recurrence} onChange={(e) => set('recurrence', e.target.value as Recurrence)}>
               <option value="once">Once</option>
               <option value="daily">Daily</option>
+              <option value="alternate-days">Alternate days</option>
               <option value="weekly">Weekly</option>
-              <option value="once-3-days">Every 3 Days</option>
+              <option value="biweekly">Biweekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
             </select>
           </div>
         </div>

@@ -7,10 +7,13 @@ interface Props {
 }
 
 const RECURRENCE: { value: Recurrence; label: string }[] = [
-  { value: 'once',       label: 'Once' },
-  { value: 'daily',      label: 'Daily' },
-  { value: 'weekly',     label: 'Weekly' },
-  { value: 'once-3-days',label: 'Every 3 days' },
+  { value: 'once',          label: 'Once' },
+  { value: 'daily',         label: 'Daily' },
+  { value: 'alternate-days',label: 'Alternate days' },
+  { value: 'weekly',        label: 'Weekly' },
+  { value: 'biweekly',      label: 'Biweekly' },
+  { value: 'monthly',       label: 'Monthly' },
+  { value: 'quarterly',     label: 'Quarterly' },
 ];
 
 export default function TaskPreview({ tasks: initial, onSubmit }: Props) {

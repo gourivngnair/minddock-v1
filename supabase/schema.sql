@@ -99,11 +99,45 @@ create table if not exists public.journal_entries (
 );
 
 
--- ── 5. Row-Level Security ────────────────
+-- ── 5. Energy Logs ──────────────────────
+create table if not exists public.energy_logs (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users on delete cascade,
+  energy     integer not null check (energy between 1 and 5),
+  note       text,
+  created_at timestamptz not null default now()
+);
+
+-- ── 6. Meal Logs ──────────────────────────
+create table if not exists public.meal_logs (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users on delete cascade,
+  meal_type   text not null check (meal_type in ('breakfast','lunch','dinner','snack')),
+  description text not null default '',
+  rating      integer check (rating between 1 and 3),
+  created_at  timestamptz not null default now()
+);
+
+-- ── 7. Sleep Logs ─────────────────────────
+create table if not exists public.sleep_logs (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users on delete cascade,
+  bedtime    timestamptz not null,
+  wake_time  timestamptz not null,
+  quality    integer not null check (quality between 1 and 5),
+  notes      text,
+  created_at timestamptz not null default now()
+);
+
+
+-- ── 8. Row-Level Security ────────────────
 alter table public.profiles         enable row level security;
 alter table public.tasks            enable row level security;
 alter table public.appointments     enable row level security;
 alter table public.journal_entries  enable row level security;
+alter table public.energy_logs      enable row level security;
+alter table public.meal_logs        enable row level security;
+alter table public.sleep_logs       enable row level security;
 
 -- Profiles: user can only access their own row
 create policy "own profile" on public.profiles
@@ -121,11 +155,27 @@ create policy "own appointments" on public.appointments
 create policy "own journal" on public.journal_entries
   for all using (auth.uid() = user_id);
 
+-- Energy logs
+create policy "own energy_logs" on public.energy_logs
+  for all using (auth.uid() = user_id);
 
--- ── 6. Indexes ───────────────────────────
+-- Meal logs
+create policy "own meal_logs" on public.meal_logs
+  for all using (auth.uid() = user_id);
+
+-- Sleep logs
+create policy "own sleep_logs" on public.sleep_logs
+  for all using (auth.uid() = user_id);
+
+
+-- ── 9. Indexes ───────────────────────────
 create index if not exists tasks_user_id_idx        on public.tasks(user_id);
 create index if not exists tasks_deadline_idx        on public.tasks(deadline) where deadline is not null;
 create index if not exists appts_user_id_idx         on public.appointments(user_id);
 create index if not exists appts_deadline_idx        on public.appointments(deadline);
 create index if not exists journal_user_id_idx       on public.journal_entries(user_id);
 create index if not exists journal_created_at_idx    on public.journal_entries(created_at desc);
+create index if not exists energy_logs_user_idx      on public.energy_logs(user_id);
+create index if not exists energy_logs_created_idx   on public.energy_logs(created_at desc);
+create index if not exists meal_logs_user_idx        on public.meal_logs(user_id);
+create index if not exists sleep_logs_user_idx       on public.sleep_logs(user_id);

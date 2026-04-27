@@ -24,6 +24,21 @@
   --focus-bg:       #120e2e;
   --focus-bg2:      #1a0d28;
   --break-bg:       #0b2a1c;
+
+  /* Extended palette */
+  --terra:          #c05a2a;
+  --terra-deep:     #9e421a;
+  --terra-soft:     #fdf0e8;
+  --lavender:       #8878c8;
+  --lavender-deep:  #6356b0;
+  --lavender-soft:  #f0eeff;
+  --teal:           #3a8a8a;
+  --teal-deep:      #2a6b6b;
+  --teal-soft:      #e5f4f4;
+  --coral:          #d9604a;
+  --coral-soft:     #fdeee9;
+  --mint:           #4aaa80;
+  --mint-soft:      #e5f7ef;
 }
 
 /* ── Reset ── */
@@ -284,10 +299,10 @@ body {
 }
 .task-dot.Work     { background: var(--slate-blue); }
 .task-dot.Life     { background: var(--sage); }
-.task-dot.Health   { background: #e07050; }
-.task-dot.Social   { background: #c070d0; }
+.task-dot.Health   { background: var(--coral); }
+.task-dot.Social   { background: var(--lavender); }
 .task-dot.Admin    { background: var(--gold); }
-.task-dot.Finance  { background: #50a070; }
+.task-dot.Finance  { background: var(--teal); }
 .task-dot.Other    { background: var(--ink-muted); }
 .task-meta {
   display: flex;
@@ -309,10 +324,15 @@ body {
   font-weight: 600;
   letter-spacing: 0.02em;
 }
-.badge.sage  { background: var(--sage-soft);       color: var(--sage-deep); }
-.badge.slate { background: var(--slate-blue-soft);  color: var(--slate-blue-deep); }
-.badge.gold  { background: var(--gold-soft);         color: var(--gold); }
-.badge.red   { background: var(--danger-soft);       color: var(--danger); }
+.badge.sage     { background: var(--sage-soft);       color: var(--sage-deep); }
+.badge.slate    { background: var(--slate-blue-soft);  color: var(--slate-blue-deep); }
+.badge.gold     { background: var(--gold-soft);         color: var(--gold); }
+.badge.red      { background: var(--danger-soft);       color: var(--danger); }
+.badge.lavender { background: var(--lavender-soft);    color: var(--lavender-deep); }
+.badge.terra    { background: var(--terra-soft);        color: var(--terra-deep); }
+.badge.teal     { background: var(--teal-soft);         color: var(--teal-deep); }
+.badge.coral    { background: var(--coral-soft);        color: var(--coral); }
+.badge.mint     { background: var(--mint-soft);         color: var(--mint); }
 
 /* ── Done row ── */
 .done-row {

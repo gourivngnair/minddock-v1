@@ -11,9 +11,136 @@ const SYMPTOM_LABELS: Record<string, { label: string; icon: string }> = {
   'overwhelm':            { label: 'Overwhelm',              icon: '🌊' },
 };
 
+const ENERGY_COLORS = ['#c0392b', '#e07b2a', '#b88a2c', '#5a8060', '#4a65f0'];
+
+/* ── Inline SVG energy timeline ── */
+function EnergyTimeline() {
+  const energyLogs = useStore((s) => s.energyLogs);
+
+  if (energyLogs.length === 0) {
+    return (
+      <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: '20px', textAlign: 'center' }}>
+        <div style={{ fontSize: '1.5rem', marginBottom: 6 }}>⚡</div>
+        <div className="tiny muted">Energy logs will appear here as you set your energy level throughout the day.</div>
+      </div>
+    );
+  }
+
+  // Use last 50 logs
+  const recent = [...energyLogs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).slice(-50);
+
+  // Group by day for day labels
+  const now = Date.now();
+  const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const inRange = recent.filter((e) => new Date(e.createdAt).getTime() >= sevenDaysAgo);
+  const data = inRange.length > 0 ? inRange : recent.slice(-20);
+
+  const W = 320, H = 90, PAD = { top: 10, bottom: 22, left: 8, right: 8 };
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+
+  const n = data.length;
+  const xs = data.map((_, i) => PAD.left + (n > 1 ? (i / (n - 1)) * innerW : innerW / 2));
+  const ys = data.map((e) => PAD.top + innerH - ((e.energy - 1) / 4) * innerH);
+
+  // Smooth path
+  let path = '';
+  if (n === 1) {
+    path = `M ${xs[0]} ${ys[0]}`;
+  } else {
+    path = `M ${xs[0]} ${ys[0]}`;
+    for (let i = 1; i < n; i++) {
+      const cpx = (xs[i - 1] + xs[i]) / 2;
+      path += ` C ${cpx} ${ys[i - 1]}, ${cpx} ${ys[i]}, ${xs[i]} ${ys[i]}`;
+    }
+  }
+
+  // Area fill path
+  const areaPath = n > 1
+    ? `${path} L ${xs[n - 1]} ${H - PAD.bottom} L ${xs[0]} ${H - PAD.bottom} Z`
+    : '';
+
+  // Y-axis grid lines (1-5)
+  const gridLines = [1, 2, 3, 4, 5].map((v) => ({
+    y: PAD.top + innerH - ((v - 1) / 4) * innerH,
+    label: String(v),
+  }));
+
+  // Time labels: first and last
+  const firstDate = new Date(data[0].createdAt);
+  const lastDate  = new Date(data[n - 1].createdAt);
+  const fmtDate   = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: '14px 14px 10px' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}>
+        {/* Grid lines */}
+        {gridLines.map((g) => (
+          <g key={g.label}>
+            <line x1={PAD.left} y1={g.y} x2={W - PAD.right} y2={g.y} stroke="var(--line-soft)" strokeWidth="1" />
+            <text x={PAD.left - 2} y={g.y + 3.5} fill="var(--ink-muted)" fontSize="7" textAnchor="end">{g.label}</text>
+          </g>
+        ))}
+
+        {/* Area */}
+        {areaPath && (
+          <path d={areaPath} fill="var(--slate-blue)" fillOpacity="0.07" />
+        )}
+
+        {/* Line */}
+        <path d={path} fill="none" stroke="var(--slate-blue)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Dots */}
+        {data.map((e, i) => (
+          <circle key={i} cx={xs[i]} cy={ys[i]} r={n > 20 ? 2.5 : 4} fill={ENERGY_COLORS[e.energy - 1]} stroke="#fff" strokeWidth="1.5" />
+        ))}
+
+        {/* Time labels */}
+        {n > 1 && (
+          <>
+            <text x={xs[0]} y={H - 2} fill="var(--ink-muted)" fontSize="7.5" textAnchor="start">{fmtDate(firstDate)}</text>
+            <text x={xs[n-1]} y={H - 2} fill="var(--ink-muted)" fontSize="7.5" textAnchor="end">{fmtDate(lastDate)}</text>
+          </>
+        )}
+      </svg>
+
+      {/* Current energy dot legend */}
+      <div className="row" style={{ gap: 8, marginTop: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {['Drained', 'Low', 'Steady', 'Decent', 'Sparked'].map((label, i) => (
+          <div key={label} className="row" style={{ gap: 4 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: ENERGY_COLORS[i] }} />
+            <span style={{ fontSize: '0.65rem', color: 'var(--ink-muted)' }}>{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── 7-day bar chart (tasks-based) ── */
+function SevenDayBars({ history }: { history: { date: string; energyLevel: number }[] }) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: '14px 14px 10px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 60 }}>
+        {history.map((e, i) => (
+          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <div style={{
+              width: '100%', borderRadius: 4,
+              background: ENERGY_COLORS[e.energyLevel - 1] ?? 'var(--slate-blue)',
+              height: `${(e.energyLevel / 5) * 100}%`, minHeight: 4,
+            }} />
+            <div className="tiny muted">{new Date(e.date).toLocaleDateString('en-US', { weekday: 'narrow' })}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function PatternsTab() {
   const user = useStore((s) => s.user);
   const tasks = useStore((s) => s.tasks);
+  const energyLogs = useStore((s) => s.energyLogs);
   const [activeSection, setActiveSection] = useState<'insights' | 'guide'>('insights');
   const [openCat, setOpenCat] = useState<string | null>(null);
 
@@ -28,6 +155,12 @@ export default function PatternsTab() {
     ? (history.reduce((s, e) => s + e.energyLevel, 0) / history.length).toFixed(1) : '—';
   const stuckCount = history.filter((e) => e.stuckModeActivated).length;
   const scaffoldedDone = tasks.filter((t) => t.completed && t.isScaffolded).length;
+
+  // Recent energy log average (last 20)
+  const recentLogs = energyLogs.slice(0, 20);
+  const logAvg = recentLogs.length > 0
+    ? (recentLogs.reduce((s, e) => s + e.energy, 0) / recentLogs.length).toFixed(1)
+    : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -54,7 +187,6 @@ export default function PatternsTab() {
             </div>
           </div>
 
-          {/* Progress bar */}
           <div style={{ height: 6, background: 'var(--paper3)', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
             <div style={{ height: '100%', width: `${lv.progress * 100}%`, background: 'var(--slate-blue)', borderRadius: 99, transition: 'width 0.4s' }} />
           </div>
@@ -89,7 +221,7 @@ export default function PatternsTab() {
         {activeSection === 'insights' && (
           <div className="col" style={{ gap: 14 }}>
 
-            {/* Symptom alignment */}
+            {/* Symptom cards */}
             {user.symptoms.length > 0 && (
               <div>
                 <div className="tiny mono soft" style={{ letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Your ADHD Profile</div>
@@ -125,8 +257,8 @@ export default function PatternsTab() {
                 {[
                   { label: 'Focus Rate',    value: `${focusRate}%`,                    sub: `${focusDone}/${totalDone} via Focus`, color: 'var(--slate-blue-deep)' },
                   { label: 'Multiplier',    value: `${user.multiplierB.toFixed(2)}×`,  sub: 'Time-Blindness B',                    color: 'var(--gold)' },
-                  { label: 'Avg Energy',    value: avgEnergy,                           sub: 'last 7 days',                         color: 'var(--sage-deep)' },
-                  { label: 'Scaffolds',     value: String(scaffoldedDone),              sub: 'scaffolds done',                      color: '#c070d0' },
+                  { label: 'Avg Energy',    value: logAvg ?? avgEnergy,                 sub: logAvg ? `${recentLogs.length} logs`  : 'last 7 days', color: 'var(--sage-deep)' },
+                  { label: 'Scaffolds',     value: String(scaffoldedDone),              sub: 'scaffolds done',                      color: 'var(--lavender-deep)' },
                 ].map((m) => (
                   <div key={m.label} style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: '13px 14px' }}>
                     <div className="tiny mono soft" style={{ letterSpacing: '0.05em', marginBottom: 4 }}>{m.label.toUpperCase()}</div>
@@ -137,20 +269,19 @@ export default function PatternsTab() {
               </div>
             </div>
 
-            {/* Energy chart */}
+            {/* Energy timeline (from explicit logs) */}
+            <div>
+              <div className="tiny mono soft" style={{ letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>
+                Energy Timeline · {energyLogs.length} readings
+              </div>
+              <EnergyTimeline />
+            </div>
+
+            {/* 7-day history bars (from pattern entries) */}
             {history.length > 0 && (
               <div>
-                <div className="tiny mono soft" style={{ letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>7-Day Energy</div>
-                <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: '14px 14px 10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 64 }}>
-                    {history.map((e, i) => (
-                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                        <div style={{ width: '100%', borderRadius: 4, background: `hsl(${e.energyLevel * 22 + 20}, 60%, 58%)`, height: `${(e.energyLevel / 5) * 100}%`, minHeight: 4 }} />
-                        <div className="tiny muted">{new Date(e.date).toLocaleDateString('en-US', { weekday: 'narrow' })}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <div className="tiny mono soft" style={{ letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>7-Day Daily Energy</div>
+                <SevenDayBars history={history} />
               </div>
             )}
           </div>
@@ -160,7 +291,6 @@ export default function PatternsTab() {
         {activeSection === 'guide' && (
           <div className="col" style={{ gap: 14 }}>
 
-            {/* Level roadmap */}
             <div>
               <div className="tiny mono soft" style={{ letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Level Roadmap</div>
               <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden' }}>
@@ -196,7 +326,6 @@ export default function PatternsTab() {
               </div>
             </div>
 
-            {/* XP action categories */}
             <div>
               <div className="tiny mono soft" style={{ letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>How to Earn XP</div>
               <div className="col" style={{ gap: 8 }}>
@@ -216,7 +345,6 @@ export default function PatternsTab() {
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-muted)" strokeWidth="2" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
                         </div>
                       </button>
-
                       {isOpen && (
                         <div style={{ borderTop: '1px solid var(--line-soft)' }}>
                           {actions.map((a, i) => (
@@ -245,7 +373,6 @@ export default function PatternsTab() {
               </div>
             </div>
 
-            {/* Quick tip */}
             <div style={{ background: 'var(--gold-soft)', border: '1px solid #e8d5a0', borderRadius: 12, padding: '13px 14px' }}>
               <div className="tiny mono" style={{ color: 'var(--gold)', letterSpacing: '0.06em', marginBottom: 4 }}>PRO TIP</div>
               <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.5, margin: 0 }}>

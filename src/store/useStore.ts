@@ -4,71 +4,73 @@ import { nanoid } from '../utils/nanoid';
 import { calcAppRecommendedTime, updateMultiplierB } from '../utils/scoring';
 import * as db from '../lib/db';
 import type {
-  Task, Appointment, JournalEntry, UserProfile, UserEnergy, Screen, PatternEntry
+  Task, Appointment, JournalEntry, UserProfile, UserEnergy, Screen, PatternEntry,
+  EnergyLogEntry, MealEntry, SleepEntry
 } from '../types';
 
 interface AppState {
   screen: Screen;
   user: UserProfile | null;
-  userId: string | null;        // Supabase auth user id
+  userId: string | null;
   tasks: Task[];
   appointments: Appointment[];
   journal: JournalEntry[];
+  energyLogs: EnergyLogEntry[];
+  mealLogs: MealEntry[];
+  sleepLogs: SleepEntry[];
   focusTaskId: string | null;
   focusStartTime: number | null;
   focusBreakTime: number;
   stuckModeIndex: number;
   dataLoading: boolean;
 
-  // Called by App after Supabase auth resolves
   hydrateFromSupabase: (userId: string) => Promise<void>;
   clearSession: () => void;
 
-  // Auth helpers (local-only, Supabase auth handled in the UI)
   checkResurrection: () => boolean;
   freshStart: () => void;
 
-  // Onboarding
   completeOnboarding: (symptoms: string[], tasks: Omit<Task, 'id' | 'createdAt' | 'appRecommendedTime'>[]) => void;
   setTutorialSeen: () => void;
 
-  // Navigation
   setScreen: (screen: Screen) => void;
 
-  // Energy & Stuck
   setUserEnergy: (energy: UserEnergy) => void;
   toggleStuckMode: () => void;
   setStuckModeIndex: (idx: number) => void;
 
-  // Tasks
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'appRecommendedTime'>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   completeTask: (id: string, viaFocus?: boolean) => void;
 
-  // Appointments
   addAppointment: (appt: Omit<Appointment, 'id' | 'createdAt'>) => void;
   updateAppointment: (id: string, updates: Partial<Appointment>) => void;
   deleteAppointment: (id: string) => void;
 
-  // Focus Mode
   startFocus: (taskId: string) => void;
   addFocusBreak: (minutes: number) => void;
   completeFocus: (taskId: string, totalActualMinutes: number) => void;
   cancelFocus: () => void;
 
-  // Journal
   addJournalEntry: (entry: Omit<JournalEntry, 'id' | 'createdAt' | 'dailyEnergy'>) => void;
   updateJournalEntry: (id: string, updates: Partial<JournalEntry>) => void;
   deleteJournalEntry: (id: string) => void;
 
-  // Data management
+  addEnergyLog: (energy: UserEnergy, note?: string) => void;
+  deleteEnergyLog: (id: string) => void;
+
+  addMealLog: (meal: Omit<MealEntry, 'id' | 'createdAt'>) => void;
+  deleteMealLog: (id: string) => void;
+
+  addSleepLog: (sleep: Omit<SleepEntry, 'id' | 'createdAt'>) => void;
+  deleteSleepLog: (id: string) => void;
+
   clearCompleted: () => void;
   resetAll: () => void;
   updateUserName: (name: string) => void;
 }
 
-// ── Helper: sync profile to Supabase after local update ──────────────────────
 function syncProfile(userId: string | null, profile: UserProfile | null) {
   if (!userId || !profile) return;
   db.upsertProfile(userId, profile).catch(console.error);
@@ -83,24 +85,29 @@ export const useStore = create<AppState>()(
       tasks: [],
       appointments: [],
       journal: [],
+      energyLogs: [],
+      mealLogs: [],
+      sleepLogs: [],
       focusTaskId: null,
       focusStartTime: null,
       focusBreakTime: 0,
       stuckModeIndex: 0,
       dataLoading: false,
 
-      // ── Called by App once Supabase auth resolves ───────────────────────────
       hydrateFromSupabase: async (userId) => {
         set({ dataLoading: true, userId });
 
-        const { profile, tasks, appointments, journal } = await db.loadAllUserData(userId);
+        const { profile, tasks, appointments, journal, energyLogs, mealLogs, sleepLogs } =
+          await db.loadAllUserData(userId);
 
         if (!profile) {
-          // New user — no profile yet (trigger will create it shortly)
           set({
             userId,
             dataLoading: false,
             screen: 'onboarding',
+            energyLogs: [],
+            mealLogs: [],
+            sleepLogs: [],
             user: {
               name: '', multiplierB: 1.5, xp: 0, symptoms: [],
               currentEnergy: 3, stuckMode: false,
@@ -121,6 +128,9 @@ export const useStore = create<AppState>()(
           tasks,
           appointments,
           journal,
+          energyLogs,
+          mealLogs,
+          sleepLogs,
           dataLoading: false,
           screen: !profile.onboardingComplete
             ? 'onboarding'
@@ -129,12 +139,15 @@ export const useStore = create<AppState>()(
             : 'today',
         });
 
-        // Touch lastActive in DB
         db.upsertProfile(userId, { lastActive: now }).catch(console.error);
       },
 
       clearSession: () =>
-        set({ screen: 'auth', user: null, userId: null, tasks: [], appointments: [], journal: [] }),
+        set({
+          screen: 'auth', user: null, userId: null,
+          tasks: [], appointments: [], journal: [],
+          energyLogs: [], mealLogs: [], sleepLogs: [],
+        }),
 
       checkResurrection: () => {
         const user = get().user;
@@ -144,7 +157,6 @@ export const useStore = create<AppState>()(
 
       freshStart: () => {
         const uid = get().userId;
-        // Delete all tasks in DB for this user (fire and forget)
         if (uid) {
           get().tasks.forEach((t) => db.deleteTask(t.id).catch(console.error));
         }
@@ -187,8 +199,15 @@ export const useStore = create<AppState>()(
       setScreen: (screen) => set({ screen }),
 
       setUserEnergy: (energy) => {
+        const { userId } = get();
         set((s) => ({ user: s.user ? { ...s.user, currentEnergy: energy } : s.user }));
-        const { userId, user } = get();
+
+        // Auto-log the energy change with timestamp
+        const log: EnergyLogEntry = { id: nanoid(), energy, createdAt: new Date().toISOString() };
+        set((s) => ({ energyLogs: [log, ...s.energyLogs] }));
+        if (userId) db.insertEnergyLog(userId, log).catch(console.error);
+
+        const { user } = get();
         syncProfile(userId, user);
       },
 
@@ -249,7 +268,6 @@ export const useStore = create<AppState>()(
         const full: Appointment = { ...appt, id: nanoid(), createdAt: new Date().toISOString() };
         set((s) => ({ appointments: [...s.appointments, full] }));
         if (userId) db.insertAppointment(userId, full).catch(console.error);
-        // +3 XP
         set((s) => ({ user: s.user ? { ...s.user, xp: s.user.xp + 3 } : s.user }));
         const { user } = get();
         syncProfile(userId, user);
@@ -330,6 +348,42 @@ export const useStore = create<AppState>()(
         db.deleteJournalEntry(id).catch(console.error);
       },
 
+      addEnergyLog: (energy, note) => {
+        const { userId } = get();
+        const log: EnergyLogEntry = { id: nanoid(), energy, note, createdAt: new Date().toISOString() };
+        set((s) => ({ energyLogs: [log, ...s.energyLogs] }));
+        if (userId) db.insertEnergyLog(userId, log).catch(console.error);
+      },
+
+      deleteEnergyLog: (id) => {
+        set((s) => ({ energyLogs: s.energyLogs.filter((e) => e.id !== id) }));
+        db.deleteEnergyLog(id).catch(console.error);
+      },
+
+      addMealLog: (meal) => {
+        const { userId } = get();
+        const full: MealEntry = { ...meal, id: nanoid(), createdAt: new Date().toISOString() };
+        set((s) => ({ mealLogs: [full, ...s.mealLogs] }));
+        if (userId) db.insertMealLog(userId, full).catch(console.error);
+      },
+
+      deleteMealLog: (id) => {
+        set((s) => ({ mealLogs: s.mealLogs.filter((m) => m.id !== id) }));
+        db.deleteMealLog(id).catch(console.error);
+      },
+
+      addSleepLog: (sleep) => {
+        const { userId } = get();
+        const full: SleepEntry = { ...sleep, id: nanoid(), createdAt: new Date().toISOString() };
+        set((s) => ({ sleepLogs: [full, ...s.sleepLogs] }));
+        if (userId) db.insertSleepLog(userId, full).catch(console.error);
+      },
+
+      deleteSleepLog: (id) => {
+        set((s) => ({ sleepLogs: s.sleepLogs.filter((s2) => s2.id !== id) }));
+        db.deleteSleepLog(id).catch(console.error);
+      },
+
       clearCompleted: () => {
         const toDelete = get().tasks.filter((t) => t.completed).map((t) => t.id);
         set((s) => ({ tasks: s.tasks.filter((t) => !t.completed) }));
@@ -349,9 +403,9 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'minddock-v1',
-      // Don't persist userId — always re-auth from Supabase session
       partialize: (s) => ({
         user: s.user, tasks: s.tasks, appointments: s.appointments, journal: s.journal,
+        energyLogs: s.energyLogs, mealLogs: s.mealLogs, sleepLogs: s.sleepLogs,
       }),
     }
   )
