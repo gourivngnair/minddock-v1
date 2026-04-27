@@ -39,6 +39,21 @@
   --coral-soft:     #fdeee9;
   --mint:           #4aaa80;
   --mint-soft:      #e5f7ef;
+  --rose:           #b84060;
+  --rose-deep:      #922845;
+  --rose-soft:      #fdeef3;
+  --amber:          #c07820;
+  --amber-deep:     #9a5e10;
+  --amber-soft:     #fef4e0;
+  --sky:            #2e90c0;
+  --sky-deep:       #1a6a94;
+  --sky-soft:       #e4f3fa;
+  --indigo:         #5060d0;
+  --indigo-deep:    #3a4ab0;
+  --indigo-soft:    #eaecff;
+  --plum:           #8840a0;
+  --plum-deep:      #6b2882;
+  --plum-soft:      #f5eaff;
 }
 
 /* ── Reset ── */
@@ -333,6 +348,47 @@ body {
 .badge.teal     { background: var(--teal-soft);         color: var(--teal-deep); }
 .badge.coral    { background: var(--coral-soft);        color: var(--coral); }
 .badge.mint     { background: var(--mint-soft);         color: var(--mint); }
+.badge.rose     { background: var(--rose-soft);         color: var(--rose-deep); }
+.badge.amber    { background: var(--amber-soft);        color: var(--amber-deep); }
+.badge.sky      { background: var(--sky-soft);          color: var(--sky-deep); }
+.badge.indigo   { background: var(--indigo-soft);       color: var(--indigo-deep); }
+.badge.plum     { background: var(--plum-soft);         color: var(--plum-deep); }
+
+/* ── Journal section cards ── */
+.journal-section {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.journal-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.journal-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.journal-section-body {
+  padding: 10px 14px 14px;
+}
+.journal-log-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.journal-log-row:last-of-type { border-bottom: none; }
 
 /* ── Done row ── */
 .done-row {
