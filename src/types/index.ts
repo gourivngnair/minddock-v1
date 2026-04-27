@@ -32,6 +32,7 @@ export interface Task {
   completed: boolean;
   completedViaFocus: boolean;
   actualTime?: number;
+  completedAt?: string;
   createdAt: string;
 }
 

@@ -67,6 +67,7 @@ create table if not exists public.tasks (
   completed            boolean not null default false,
   completed_via_focus  boolean not null default false,
   actual_time          integer,
+  completed_at         timestamptz,
   created_at           timestamptz not null default now()
 );
 
@@ -97,6 +98,18 @@ create table if not exists public.journal_entries (
   memory_image_url text,
   created_at       timestamptz not null default now()
 );
+
+
+-- ── Migration: add completed_at to existing tasks table ────────────────────
+-- (safe to run multiple times — IF NOT EXISTS analog for columns)
+do $$ begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_name='tasks' and column_name='completed_at'
+  ) then
+    alter table public.tasks add column completed_at timestamptz;
+  end if;
+end $$;
 
 
 -- ── 5. Energy Logs ──────────────────────

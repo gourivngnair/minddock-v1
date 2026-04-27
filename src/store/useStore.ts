@@ -254,11 +254,12 @@ export const useStore = create<AppState>()(
       },
 
       completeTask: (id, viaFocus = false) => {
+        const now = new Date().toISOString();
         set((s) => ({
-          tasks: s.tasks.map((t) => t.id === id ? { ...t, completed: true, completedViaFocus: viaFocus } : t),
+          tasks: s.tasks.map((t) => t.id === id ? { ...t, completed: true, completedViaFocus: viaFocus, completedAt: now } : t),
           user: s.user ? { ...s.user, xp: s.user.xp + (viaFocus ? 20 : 10) } : s.user,
         }));
-        db.updateTask(id, { completed: true, completedViaFocus: viaFocus }).catch(console.error);
+        db.updateTask(id, { completed: true, completedViaFocus: viaFocus, completedAt: now }).catch(console.error);
         const { userId, user } = get();
         syncProfile(userId, user);
       },
@@ -302,9 +303,10 @@ export const useStore = create<AppState>()(
           multiplierB: newB,
         };
 
+        const completedAt = new Date().toISOString();
         set((s) => ({
           tasks: s.tasks.map((t) =>
-            t.id === taskId ? { ...t, completed: true, completedViaFocus: true, actualTime: totalActualMinutes } : t
+            t.id === taskId ? { ...t, completed: true, completedViaFocus: true, actualTime: totalActualMinutes, completedAt } : t
           ),
           user: s.user ? {
             ...s.user, multiplierB: newB, xp: s.user.xp + 20,
@@ -313,7 +315,7 @@ export const useStore = create<AppState>()(
           focusTaskId: null, focusStartTime: null, focusBreakTime: 0, screen: 'today',
         }));
 
-        db.updateTask(taskId, { completed: true, completedViaFocus: true, actualTime: totalActualMinutes }).catch(console.error);
+        db.updateTask(taskId, { completed: true, completedViaFocus: true, actualTime: totalActualMinutes, completedAt }).catch(console.error);
         const { userId, user } = get();
         syncProfile(userId, user);
       },

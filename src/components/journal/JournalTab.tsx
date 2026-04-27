@@ -593,7 +593,7 @@ export default function JournalTab() {
   const allItems: LogItem[] = [
     ...journal.map((j): LogItem => ({ kind: 'thought', data: j })),
     ...energyLogs.map((e): LogItem => ({ kind: 'energy', id: e.id, energy: e.energy, note: e.note, createdAt: e.createdAt })),
-    ...completedTasks.map((t): LogItem => ({ kind: 'task-done', id: t.id, title: t.title, viaFocus: t.completedViaFocus, createdAt: t.createdAt })),
+    ...completedTasks.map((t): LogItem => ({ kind: 'task-done', id: t.id, title: t.title, viaFocus: t.completedViaFocus, createdAt: t.completedAt ?? t.createdAt })),
     ...mealLogs.map((m): LogItem => ({ kind: 'meal', data: m })),
     ...sleepLogs.map((s): LogItem => ({ kind: 'sleep', data: s })),
   ];

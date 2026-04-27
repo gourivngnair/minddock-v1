@@ -151,7 +151,48 @@ export default function TodayView() {
                 </div>
               ))}
             </div>
+
+            {/* Journal link */}
+            <button
+              onClick={() => setScreen('journal')}
+              style={{
+                marginTop: 12, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 14px', borderRadius: 12, cursor: 'pointer',
+                background: 'var(--lavender-soft)', border: '1px solid var(--lavender)',
+                transition: 'background 0.15s',
+              }}
+            >
+              <div className="row" style={{ gap: 10 }}>
+                <span style={{ fontSize: 18 }}>📓</span>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--lavender-deep)' }}>Today's Journal</div>
+                  <div className="tiny" style={{ color: 'var(--ink-muted)', marginTop: 1 }}>Tasks, energy, meals &amp; more →</div>
+                </div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--lavender-deep)" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
           </>
+        )}
+
+        {/* Journal entry point when nothing is done yet */}
+        {doneTasks.length === 0 && (
+          <button
+            onClick={() => setScreen('journal')}
+            style={{
+              marginTop: 20, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 14px', borderRadius: 12, cursor: 'pointer',
+              background: 'var(--lavender-soft)', border: '1px solid var(--lavender)',
+            }}
+          >
+            <div className="row" style={{ gap: 10 }}>
+              <span style={{ fontSize: 18 }}>📓</span>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--lavender-deep)' }}>Today's Journal</div>
+                <div className="tiny" style={{ color: 'var(--ink-muted)', marginTop: 1 }}>Log energy, meals, sleep &amp; thoughts →</div>
+              </div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--lavender-deep)" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
         )}
       </div>
 

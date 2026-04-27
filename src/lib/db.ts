@@ -68,6 +68,7 @@ function rowToTask(r: Record<string, unknown>): Task {
     completed:          r.completed as boolean,
     completedViaFocus:  r.completed_via_focus as boolean,
     actualTime:         r.actual_time as number | undefined,
+    completedAt:        r.completed_at as string | undefined,
     createdAt:          r.created_at as string,
   };
 }
@@ -100,6 +101,7 @@ export async function insertTask(userId: string, task: Task) {
     completed:            task.completed,
     completed_via_focus:  task.completedViaFocus,
     actual_time:          task.actualTime ?? null,
+    completed_at:         task.completedAt ?? null,
     created_at:           task.createdAt,
   });
 }
@@ -120,6 +122,7 @@ export async function updateTask(taskId: string, updates: Partial<Task>) {
   if (updates.completed          !== undefined) row.completed            = updates.completed;
   if (updates.completedViaFocus  !== undefined) row.completed_via_focus  = updates.completedViaFocus;
   if (updates.actualTime         !== undefined) row.actual_time          = updates.actualTime ?? null;
+  if (updates.completedAt        !== undefined) row.completed_at         = updates.completedAt ?? null;
   await supabase.from('tasks').update(row).eq('id', taskId);
 }
 
