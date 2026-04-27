@@ -1,9 +1,10 @@
--- ─────────────────────────────────────────
+-- ─────────────────────────────────────────────────────────────────────────────
 -- MindDock v1.1 — Supabase Schema
--- Run this once in your Supabase SQL Editor
--- ─────────────────────────────────────────
+-- Fully idempotent: safe to run on a fresh DB or an existing one.
+-- ─────────────────────────────────────────────────────────────────────────────
 
--- ── 1. Profiles (extends auth.users) ─────
+
+-- ── 1. Profiles ───────────────────────────────────────────────────────────────
 create table if not exists public.profiles (
   id                  uuid primary key references auth.users on delete cascade,
   name                text not null default '',
@@ -43,12 +44,13 @@ begin
 end;
 $$;
 
+drop trigger if exists profiles_updated_at on public.profiles;
 create trigger profiles_updated_at
   before update on public.profiles
   for each row execute procedure public.update_updated_at();
 
 
--- ── 2. Tasks ──────────────────────────────
+-- ── 2. Tasks ──────────────────────────────────────────────────────────────────
 create table if not exists public.tasks (
   id                   uuid primary key default gen_random_uuid(),
   user_id              uuid not null references auth.users on delete cascade,
@@ -71,8 +73,18 @@ create table if not exists public.tasks (
   created_at           timestamptz not null default now()
 );
 
+-- Add completed_at to existing tables (no-op if column already exists)
+do $$ begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='tasks' and column_name='completed_at'
+  ) then
+    alter table public.tasks add column completed_at timestamptz;
+  end if;
+end $$;
 
--- ── 3. Appointments ──────────────────────
+
+-- ── 3. Appointments ───────────────────────────────────────────────────────────
 create table if not exists public.appointments (
   id              uuid primary key default gen_random_uuid(),
   user_id         uuid not null references auth.users on delete cascade,
@@ -88,7 +100,7 @@ create table if not exists public.appointments (
 );
 
 
--- ── 4. Journal entries ───────────────────
+-- ── 4. Journal entries ────────────────────────────────────────────────────────
 create table if not exists public.journal_entries (
   id               uuid primary key default gen_random_uuid(),
   user_id          uuid not null references auth.users on delete cascade,
@@ -100,19 +112,7 @@ create table if not exists public.journal_entries (
 );
 
 
--- ── Migration: add completed_at to existing tasks table ────────────────────
--- (safe to run multiple times — IF NOT EXISTS analog for columns)
-do $$ begin
-  if not exists (
-    select 1 from information_schema.columns
-    where table_name='tasks' and column_name='completed_at'
-  ) then
-    alter table public.tasks add column completed_at timestamptz;
-  end if;
-end $$;
-
-
--- ── 5. Energy Logs ──────────────────────
+-- ── 5. Energy logs ────────────────────────────────────────────────────────────
 create table if not exists public.energy_logs (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references auth.users on delete cascade,
@@ -121,7 +121,8 @@ create table if not exists public.energy_logs (
   created_at timestamptz not null default now()
 );
 
--- ── 6. Meal Logs ──────────────────────────
+
+-- ── 6. Meal logs ──────────────────────────────────────────────────────────────
 create table if not exists public.meal_logs (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references auth.users on delete cascade,
@@ -131,7 +132,8 @@ create table if not exists public.meal_logs (
   created_at  timestamptz not null default now()
 );
 
--- ── 7. Sleep Logs ─────────────────────────
+
+-- ── 7. Sleep logs ─────────────────────────────────────────────────────────────
 create table if not exists public.sleep_logs (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references auth.users on delete cascade,
@@ -143,52 +145,43 @@ create table if not exists public.sleep_logs (
 );
 
 
--- ── 8. Row-Level Security ────────────────
-alter table public.profiles         enable row level security;
-alter table public.tasks            enable row level security;
-alter table public.appointments     enable row level security;
-alter table public.journal_entries  enable row level security;
-alter table public.energy_logs      enable row level security;
-alter table public.meal_logs        enable row level security;
-alter table public.sleep_logs       enable row level security;
+-- ── 8. Row-Level Security ─────────────────────────────────────────────────────
+alter table public.profiles        enable row level security;
+alter table public.tasks           enable row level security;
+alter table public.appointments    enable row level security;
+alter table public.journal_entries enable row level security;
+alter table public.energy_logs     enable row level security;
+alter table public.meal_logs       enable row level security;
+alter table public.sleep_logs      enable row level security;
 
--- Profiles: user can only access their own row
-create policy "own profile" on public.profiles
-  for all using (auth.uid() = id);
+-- Policies (drop first so re-runs don't error)
+do $$ begin
+  drop policy if exists "own profile"      on public.profiles;
+  drop policy if exists "own tasks"        on public.tasks;
+  drop policy if exists "own appointments" on public.appointments;
+  drop policy if exists "own journal"      on public.journal_entries;
+  drop policy if exists "own energy_logs"  on public.energy_logs;
+  drop policy if exists "own meal_logs"    on public.meal_logs;
+  drop policy if exists "own sleep_logs"   on public.sleep_logs;
+end $$;
 
--- Tasks: user can only access their own rows
-create policy "own tasks" on public.tasks
-  for all using (auth.uid() = user_id);
-
--- Appointments
-create policy "own appointments" on public.appointments
-  for all using (auth.uid() = user_id);
-
--- Journal
-create policy "own journal" on public.journal_entries
-  for all using (auth.uid() = user_id);
-
--- Energy logs
-create policy "own energy_logs" on public.energy_logs
-  for all using (auth.uid() = user_id);
-
--- Meal logs
-create policy "own meal_logs" on public.meal_logs
-  for all using (auth.uid() = user_id);
-
--- Sleep logs
-create policy "own sleep_logs" on public.sleep_logs
-  for all using (auth.uid() = user_id);
+create policy "own profile"      on public.profiles        for all using (auth.uid() = id);
+create policy "own tasks"        on public.tasks           for all using (auth.uid() = user_id);
+create policy "own appointments" on public.appointments    for all using (auth.uid() = user_id);
+create policy "own journal"      on public.journal_entries for all using (auth.uid() = user_id);
+create policy "own energy_logs"  on public.energy_logs     for all using (auth.uid() = user_id);
+create policy "own meal_logs"    on public.meal_logs       for all using (auth.uid() = user_id);
+create policy "own sleep_logs"   on public.sleep_logs      for all using (auth.uid() = user_id);
 
 
--- ── 9. Indexes ───────────────────────────
-create index if not exists tasks_user_id_idx        on public.tasks(user_id);
-create index if not exists tasks_deadline_idx        on public.tasks(deadline) where deadline is not null;
-create index if not exists appts_user_id_idx         on public.appointments(user_id);
-create index if not exists appts_deadline_idx        on public.appointments(deadline);
-create index if not exists journal_user_id_idx       on public.journal_entries(user_id);
-create index if not exists journal_created_at_idx    on public.journal_entries(created_at desc);
-create index if not exists energy_logs_user_idx      on public.energy_logs(user_id);
-create index if not exists energy_logs_created_idx   on public.energy_logs(created_at desc);
-create index if not exists meal_logs_user_idx        on public.meal_logs(user_id);
-create index if not exists sleep_logs_user_idx       on public.sleep_logs(user_id);
+-- ── 9. Indexes ────────────────────────────────────────────────────────────────
+create index if not exists tasks_user_id_idx       on public.tasks(user_id);
+create index if not exists tasks_deadline_idx      on public.tasks(deadline) where deadline is not null;
+create index if not exists appts_user_id_idx       on public.appointments(user_id);
+create index if not exists appts_deadline_idx      on public.appointments(deadline);
+create index if not exists journal_user_id_idx     on public.journal_entries(user_id);
+create index if not exists journal_created_at_idx  on public.journal_entries(created_at desc);
+create index if not exists energy_logs_user_idx    on public.energy_logs(user_id);
+create index if not exists energy_logs_created_idx on public.energy_logs(created_at desc);
+create index if not exists meal_logs_user_idx      on public.meal_logs(user_id);
+create index if not exists sleep_logs_user_idx     on public.sleep_logs(user_id);
