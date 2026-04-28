@@ -25,26 +25,35 @@ export default function App() {
   const clearSession        = useStore((s) => s.clearSession);
   const screen              = useStore((s) => s.screen);
   const dataLoading         = useStore((s) => s.dataLoading);
+  const hasLocalUser        = useStore((s) => s.user !== null);
   const [showDump, setShowDump] = useState(false);
 
   const hydratedFor = useRef<string | null>(null);
 
   useEffect(() => {
+    // Wait until Supabase has confirmed the session before acting.
+    // Without this guard, clearSession() fires on mount (authUser = null)
+    // and wipes localStorage before getSession() even resolves.
+    if (authLoading) return;
+
     if (!authUser) {
       hydratedFor.current = null;
       clearSession();
       return;
     }
-    // Only hydrate once per user id (avoid double-call on tab focus)
     if (hydratedFor.current === authUser.id) return;
     hydratedFor.current = authUser.id;
     hydrateFromSupabase(authUser.id);
-  }, [authUser, hydrateFromSupabase, clearSession]);
+  }, [authUser, authLoading, hydrateFromSupabase, clearSession]);
 
   const isTab = TAB_SCREENS.includes(screen as typeof TAB_SCREENS[number]);
 
-  // ── Full-screen loading spinner ──────────────────────────────────────────
-  if (authLoading || dataLoading) {
+  // Show full-screen spinner only on a true first load (no persisted data).
+  // If localStorage already has data, render immediately and let Supabase
+  // sync silently in the background — no flash of empty state.
+  const showSpinner = authLoading || (dataLoading && !hasLocalUser);
+
+  if (showSpinner) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 14 }}>
         <div className="serif" style={{ fontSize: 24, fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--charcoal)' }}>
@@ -59,7 +68,6 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
-        {/* Not authenticated — show login/signup */}
         {!authUser && <AuthScreen />}
 
         {authUser && (
@@ -67,17 +75,19 @@ export default function App() {
             {screen === 'resurrection' && <ResurrectionScreen />}
             {screen === 'onboarding'   && <OnboardingFlow />}
             {screen === 'focus'        && <FocusMode />}
-            {screen === 'today'        && <TodayView />}
 
-            {isTab && (
+            {(screen === 'today' || isTab) && (
               <>
-                {screen === 'tasks'        && <TasksTab />}
-                {screen === 'appointments' && <AppointmentsTab />}
-                {screen === 'calendar'     && <CalendarTab />}
-                {screen === 'patterns'     && <PatternsTab />}
-                {screen === 'journal'      && <JournalTab />}
-                {screen === 'settings'     && <SettingsTab />}
                 <BottomNav onOpenDump={() => setShowDump(true)} />
+                <div className="app-main">
+                  {screen === 'today'        && <TodayView />}
+                  {screen === 'tasks'        && <TasksTab />}
+                  {screen === 'appointments' && <AppointmentsTab />}
+                  {screen === 'calendar'     && <CalendarTab />}
+                  {screen === 'patterns'     && <PatternsTab />}
+                  {screen === 'journal'      && <JournalTab />}
+                  {screen === 'settings'     && <SettingsTab />}
+                </div>
                 {showDump && <CommandCenter onClose={() => setShowDump(false)} />}
               </>
             )}

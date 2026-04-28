@@ -70,6 +70,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── App shell ──────────────────────────────────────────────────────────── */
 #root {
   height: 100dvh;
   display: flex;
@@ -78,6 +79,120 @@ body {
   margin: 0 auto;
   position: relative;
   background: var(--paper);
+}
+
+/* Tablet: more breathing room, still column */
+@media (min-width: 640px) {
+  #root { max-width: 640px; }
+  .topbar { padding: 20px 24px 12px; }
+  .screen-scroll { padding: 0 24px 130px; }
+  .filter-bar { padding: 0 24px 10px; }
+  .sort-row { padding: 0 24px 6px; }
+  .filter-summary { margin: 0 24px 8px; }
+}
+
+/* Desktop: sidebar layout */
+@media (min-width: 1024px) {
+  html, body { overflow: hidden; }
+
+  #root {
+    max-width: 100%;
+    flex-direction: row;
+    margin: 0;
+  }
+
+  /* Sidebar nav */
+  .bottom-dock {
+    position: relative;
+    width: 230px;
+    height: 100dvh;
+    flex-direction: column;
+    border-top: none;
+    border-right: 1px solid var(--line);
+    padding: 0 0 20px;
+    align-items: stretch;
+    justify-content: flex-start;
+    background: #fff;
+    flex-shrink: 0;
+    z-index: 40;
+  }
+
+  /* Show sidebar header and desktop nav group; hide mobile groups */
+  .sidebar-header {
+    display: block;
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    margin-bottom: 8px;
+  }
+  .nav-tabs-mobile { display: none; }
+  .nav-tabs-desktop {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .bottom-dock .tab-btn {
+    flex-direction: row;
+    gap: 12px;
+    height: auto;
+    padding: 11px 18px;
+    border-radius: 10px;
+    margin: 2px 10px;
+    justify-content: flex-start;
+    font-size: 0.86rem;
+    font-weight: 500;
+  }
+  .bottom-dock .tab-btn svg { width: 18px; height: 18px; }
+  .bottom-dock .tab-btn.active::after { display: none; }
+  .bottom-dock .tab-btn.active {
+    background: var(--slate-blue-soft);
+    color: var(--slate-blue-deep);
+  }
+  .bottom-dock .tab-btn.active svg { stroke: var(--slate-blue-deep); }
+
+  /* FAB becomes a wide pill button in the sidebar */
+  .bottom-dock .fab {
+    transform: none;
+    width: calc(100% - 20px);
+    height: 44px;
+    border-radius: 12px;
+    margin: 12px 10px 4px;
+    box-shadow: none;
+    border: none;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 18px;
+    font-size: 0.86rem;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .bottom-dock .fab::after { content: 'Brain Dump'; }
+  .bottom-dock .fab:hover {
+    transform: none;
+    box-shadow: 0 4px 16px rgba(22,18,31,0.25);
+  }
+
+  /* Main content area fills remaining space */
+  .app-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-width: 800px;
+  }
+
+  /* Wider content padding */
+  .topbar        { padding: 24px 32px 14px; }
+  .screen-scroll { padding: 0 32px 60px; }
+  .filter-bar    { padding: 0 32px 10px; }
+  .sort-row      { padding: 0 32px 6px; }
+  .filter-summary { margin: 0 32px 8px; }
+}
+
+/* Large desktop: wider content */
+@media (min-width: 1400px) {
+  .app-main { max-width: 1000px; }
+  .bottom-dock { width: 250px; }
 }
 
 /* ── Typography helpers ── */
@@ -408,7 +523,7 @@ body {
   color: var(--ink-soft);
 }
 
-/* ── Bottom dock ── */
+/* ── Bottom dock (mobile) ── */
 .bottom-dock {
   position: fixed;
   bottom: 0;
@@ -424,6 +539,16 @@ body {
   border-top: 1px solid var(--line);
   padding: 0 4px env(safe-area-inset-bottom, 0px);
   z-index: 40;
+}
+
+/* nav-tabs-desktop hidden on mobile/tablet */
+.nav-tabs-desktop { display: none; }
+/* sidebar-header hidden on mobile */
+.sidebar-header { display: none; }
+
+/* Mobile: show left/right groups, hide desktop group */
+.nav-tabs-mobile {
+  display: contents; /* children participate in the flex layout directly */
 }
 .tab-btn {
   display: flex;
