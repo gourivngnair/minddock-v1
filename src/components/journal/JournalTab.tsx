@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useStore } from '../../store/useStore';
-import type { MoodType, JournalEntry, UserEnergy, MealType, SleepEntry, SleepQuality, MealEntry, EnergyLogEntry } from '../../types';
+import type { MoodType, JournalEntry, UserEnergy, MealType, SleepEntry, SleepQuality, MealEntry, EnergyLogEntry, Appointment } from '../../types';
 
 /* ── helpers ── */
 const fmtTime = (iso: string) =>
@@ -318,18 +318,19 @@ function SleepSheet({ onClose, addSleep }: { onClose: () => void; addSleep: (s: 
 }
 
 /* ── History day card ── */
-function HistoryDayCard({ dateStr, thoughts, energyItems, tasks, meals, sleep }: {
+function HistoryDayCard({ dateStr, thoughts, energyItems, tasks, meals, sleep, appts }: {
   dateStr: string;
   thoughts: JournalEntry[];
   energyItems: EnergyLogEntry[];
   tasks: { id: string; title: string; viaFocus: boolean; completedAt: string }[];
   meals: MealEntry[];
   sleep: SleepEntry[];
+  appts: Appointment[];
 }) {
   const [open, setOpen] = useState(false);
   const date = new Date(dateStr);
   const label = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  const total = thoughts.length + energyItems.length + tasks.length + meals.length + sleep.length;
+  const total = thoughts.length + energyItems.length + tasks.length + meals.length + sleep.length + appts.length;
 
   if (total === 0) return null;
 
@@ -343,11 +344,12 @@ function HistoryDayCard({ dateStr, thoughts, energyItems, tasks, meals, sleep }:
         <div>
           <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--charcoal)' }}>{label}</div>
           <div className="row" style={{ gap: 8, marginTop: 4 }}>
-            {thoughts.length > 0  && <span className="tiny" style={{ color: 'var(--rose-deep)' }}>💭{thoughts.length}</span>}
+            {appts.length > 0       && <span className="tiny" style={{ color: 'var(--sky-deep)' }}>📅{appts.length}</span>}
+            {thoughts.length > 0    && <span className="tiny" style={{ color: 'var(--rose-deep)' }}>💭{thoughts.length}</span>}
             {energyItems.length > 0 && <span className="tiny" style={{ color: 'var(--amber-deep)' }}>⚡{energyItems.length}</span>}
-            {tasks.length > 0     && <span className="tiny" style={{ color: 'var(--sage-deep)' }}>✓{tasks.length}</span>}
-            {meals.length > 0     && <span className="tiny" style={{ color: 'var(--terra-deep)' }}>🍽️{meals.length}</span>}
-            {sleep.length > 0     && <span className="tiny" style={{ color: 'var(--teal-deep)' }}>💤</span>}
+            {tasks.length > 0       && <span className="tiny" style={{ color: 'var(--sage-deep)' }}>✓{tasks.length}</span>}
+            {meals.length > 0       && <span className="tiny" style={{ color: 'var(--terra-deep)' }}>🍽️{meals.length}</span>}
+            {sleep.length > 0       && <span className="tiny" style={{ color: 'var(--teal-deep)' }}>💤</span>}
           </div>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-muted)" strokeWidth="2"
@@ -358,6 +360,13 @@ function HistoryDayCard({ dateStr, thoughts, energyItems, tasks, meals, sleep }:
 
       {open && (
         <div style={{ borderTop: '1px solid var(--line-soft)', padding: '12px 14px 14px' }}>
+          {appts.map((a) => (
+            <div key={a.id} className="journal-log-row">
+              <span style={{ fontSize: 14 }}>{a.location === 'away' ? '🚗' : '🏠'}</span>
+              <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--sky-deep)' }}>{a.title}</span>
+              <span className="tiny muted">{new Date(a.deadline).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+            </div>
+          ))}
           {thoughts.map((j) => {
             const m = MOODS.find((x) => x.value === j.mood)!;
             return (
@@ -424,6 +433,7 @@ function HistoryDayCard({ dateStr, thoughts, energyItems, tasks, meals, sleep }:
 export default function JournalTab() {
   const journal            = useStore((s) => s.journal);
   const tasks              = useStore((s) => s.tasks);
+  const appointments       = useStore((s) => s.appointments);
   const energyLogs         = useStore((s) => s.energyLogs);
   const mealLogs           = useStore((s) => s.mealLogs);
   const sleepLogs          = useStore((s) => s.sleepLogs);
@@ -450,6 +460,9 @@ export default function JournalTab() {
   const todayTasks     = tasks
     .filter((t) => t.completed && t.completedAt && dateKey(t.completedAt) === today)
     .sort((a, b) => new Date(a.completedAt!).getTime() - new Date(b.completedAt!).getTime());
+  const todayAppts     = appointments
+    .filter((a) => dateKey(a.deadline) === today)
+    .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
   const todayMeals     = mealLogs.filter((m) => dateKey(m.createdAt) === today)
                           .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   const todaySleep     = sleepLogs.filter((s) => dateKey(s.createdAt) === today);
@@ -462,6 +475,8 @@ export default function JournalTab() {
   });
   tasks.filter((t) => t.completed && t.completedAt && dateKey(t.completedAt) !== today)
     .forEach((t) => allDays.add(dateKey(t.completedAt!)));
+  appointments.filter((a) => dateKey(a.deadline) !== today)
+    .forEach((a) => allDays.add(dateKey(a.deadline)));
   const historyDays = [...allDays].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
   const dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -585,7 +600,36 @@ export default function JournalTab() {
               )}
             </Section>
 
-            {/* 3. Tasks Completed */}
+            {/* 3. Appointments */}
+            <Section
+              icon="📅" title="Appointments" color="var(--sky)"
+              count={todayAppts.length}
+              empty="No appointments today."
+            >
+              {todayAppts.length > 0 && todayAppts.map((a) => {
+                const isPast = new Date(a.deadline).getTime() < Date.now();
+                const t = new Date(a.deadline).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                return (
+                  <div key={a.id} className="journal-log-row">
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: isPast ? 'var(--paper3)' : 'var(--sky-soft)', border: `1.5px solid ${isPast ? 'var(--line)' : 'var(--sky)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>
+                      {a.location === 'away' ? '🚗' : '🏠'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13.5, color: isPast ? 'var(--ink-muted)' : 'var(--sky-deep)', textDecoration: isPast ? 'line-through' : 'none' }}>
+                        {a.title}
+                      </div>
+                      {a.description && <div className="tiny muted" style={{ marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.description}</div>}
+                    </div>
+                    <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                      <div className="tiny mono" style={{ fontWeight: 600, color: isPast ? 'var(--ink-muted)' : 'var(--sky-deep)' }}>{t}</div>
+                      {isPast && <div className="tiny muted">done</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </Section>
+
+            {/* 4. Tasks Completed */}
             <Section
               icon="✓" title="Tasks Completed" color="var(--sage)"
               count={todayTasks.length}
@@ -696,6 +740,7 @@ export default function JournalTab() {
                 <HistoryDayCard
                   key={d}
                   dateStr={d}
+                  appts={appointments.filter((a) => dateKey(a.deadline) === d)}
                   thoughts={journal.filter((j) => dateKey(j.createdAt) === d)}
                   energyItems={energyLogs.filter((e) => dateKey(e.createdAt) === d)}
                   tasks={tasks.filter((t) => t.completed && t.completedAt && dateKey(t.completedAt) === d)

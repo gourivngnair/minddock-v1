@@ -274,8 +274,10 @@ export const useStore = create<AppState>()(
         syncProfile(userId, user);
       },
 
-      updateAppointment: (id, updates) =>
-        set((s) => ({ appointments: s.appointments.map((a) => a.id === id ? { ...a, ...updates } : a) })),
+      updateAppointment: (id, updates) => {
+        set((s) => ({ appointments: s.appointments.map((a) => a.id === id ? { ...a, ...updates } : a) }));
+        db.updateAppointment(id, updates).catch(console.error);
+      },
 
       deleteAppointment: (id) => {
         set((s) => ({ appointments: s.appointments.filter((a) => a.id !== id) }));

@@ -173,6 +173,19 @@ export async function insertAppointment(userId: string, appt: Appointment) {
   });
 }
 
+export async function updateAppointment(apptId: string, updates: Partial<Appointment>) {
+  const row: Record<string, unknown> = {};
+  if (updates.title          !== undefined) row.title           = updates.title;
+  if (updates.description    !== undefined) row.description     = updates.description;
+  if (updates.location       !== undefined) row.location        = updates.location;
+  if (updates.deadline       !== undefined) row.deadline        = updates.deadline;
+  if (updates.energyRequired !== undefined) row.energy_required = updates.energyRequired;
+  if (updates.bucketTag      !== undefined) row.bucket_tag      = updates.bucketTag;
+  if (updates.waitingOn      !== undefined) row.waiting_on      = updates.waitingOn ?? null;
+  if (updates.completed      !== undefined) row.completed       = updates.completed;
+  await supabase.from('appointments').update(row).eq('id', apptId);
+}
+
 export async function deleteAppointment(apptId: string) {
   await supabase.from('appointments').delete().eq('id', apptId);
 }
