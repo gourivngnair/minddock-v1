@@ -81,17 +81,32 @@ body {
   background: var(--paper);
 }
 
-/* Tablet: more breathing room, still column */
+/* app-main: base styles work on ALL breakpoints */
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0; /* required for nested overflow-y: auto to work */
+}
+
+/* sidebar-header and desktop nav group hidden by default */
+.sidebar-header    { display: none; }
+.nav-tabs-desktop  { display: none; }
+/* mobile nav groups — display:contents makes children join the parent flex directly */
+.nav-tabs-mobile   { display: contents; }
+
+/* ── Tablet: wider column ── */
 @media (min-width: 640px) {
   #root { max-width: 640px; }
-  .topbar { padding: 20px 24px 12px; }
-  .screen-scroll { padding: 0 24px 130px; }
-  .filter-bar { padding: 0 24px 10px; }
-  .sort-row { padding: 0 24px 6px; }
+  .topbar         { padding: 20px 24px 12px; }
+  .screen-scroll  { padding: 0 24px 130px; }
+  .filter-bar     { padding: 0 24px 10px; }
+  .sort-row       { padding: 0 24px 6px; }
   .filter-summary { margin: 0 24px 8px; }
 }
 
-/* Desktop: sidebar layout */
+/* ── Desktop: sidebar layout ── */
 @media (min-width: 1024px) {
   html, body { overflow: hidden; }
 
@@ -101,40 +116,57 @@ body {
     margin: 0;
   }
 
-  /* Sidebar nav */
+  /* Convert the bottom dock into a left sidebar.
+     Explicitly reset every mobile-specific property so nothing bleeds through. */
   .bottom-dock {
-    position: relative;
+    /* reset mobile fixed positioning */
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    /* sidebar dimensions */
     width: 230px;
     height: 100dvh;
+    /* flex column */
+    display: flex;
     flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    /* visual */
     border-top: none;
     border-right: 1px solid var(--line);
     padding: 0 0 20px;
-    align-items: stretch;
-    justify-content: flex-start;
     background: #fff;
     flex-shrink: 0;
     z-index: 40;
   }
 
-  /* Show sidebar header and desktop nav group; hide mobile groups */
+  /* Sidebar header (logo) */
   .sidebar-header {
     display: block;
     padding: 24px 20px 16px;
     border-bottom: 1px solid var(--line-soft);
     margin-bottom: 8px;
+    flex-shrink: 0;
   }
-  .nav-tabs-mobile { display: none; }
+
+  /* Show desktop nav group, hide mobile groups */
+  .nav-tabs-mobile  { display: none !important; }
   .nav-tabs-desktop {
     display: flex;
     flex-direction: column;
     flex: 1;
+    overflow-y: auto;
   }
 
+  /* Sidebar tab buttons */
   .bottom-dock .tab-btn {
     flex-direction: row;
     gap: 12px;
     height: auto;
+    flex: none;
     padding: 11px 18px;
     border-radius: 10px;
     margin: 2px 10px;
@@ -150,9 +182,9 @@ body {
   }
   .bottom-dock .tab-btn.active svg { stroke: var(--slate-blue-deep); }
 
-  /* FAB becomes a wide pill button in the sidebar */
+  /* FAB → wide sidebar button */
   .bottom-dock .fab {
-    transform: none;
+    transform: none !important;
     width: calc(100% - 20px);
     height: 44px;
     border-radius: 12px;
@@ -165,34 +197,30 @@ body {
     font-size: 0.86rem;
     font-weight: 600;
     letter-spacing: 0;
+    flex-shrink: 0;
   }
   .bottom-dock .fab::after { content: 'Brain Dump'; }
   .bottom-dock .fab:hover {
-    transform: none;
+    transform: none !important;
+    background: #211c2e;
     box-shadow: 0 4px 16px rgba(22,18,31,0.25);
   }
 
-  /* Main content area fills remaining space */
-  .app-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    max-width: 800px;
-  }
+  /* Main content area */
+  .app-main { max-width: 800px; }
 
-  /* Wider content padding */
-  .topbar        { padding: 24px 32px 14px; }
-  .screen-scroll { padding: 0 32px 60px; }
-  .filter-bar    { padding: 0 32px 10px; }
-  .sort-row      { padding: 0 32px 6px; }
+  /* Wider padding */
+  .topbar         { padding: 24px 32px 14px; }
+  .screen-scroll  { padding: 0 32px 60px; }
+  .filter-bar     { padding: 0 32px 10px; }
+  .sort-row       { padding: 0 32px 6px; }
   .filter-summary { margin: 0 32px 8px; }
 }
 
-/* Large desktop: wider content */
+/* ── Large desktop ── */
 @media (min-width: 1400px) {
-  .app-main { max-width: 1000px; }
-  .bottom-dock { width: 250px; }
+  .app-main      { max-width: 1000px; }
+  .bottom-dock   { width: 250px; }
 }
 
 /* ── Typography helpers ── */

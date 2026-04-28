@@ -61,7 +61,7 @@ export default function BottomNav({ onOpenDump }: Props) {
 
   return (
     <div className="bottom-dock">
-      {/* Desktop-only sidebar header */}
+      {/* Sidebar header — only visible on desktop */}
       <div className="sidebar-header">
         <div className="serif" style={{ fontSize: 17, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--charcoal)' }}>
           MindDock
@@ -69,17 +69,21 @@ export default function BottomNav({ onOpenDump }: Props) {
         <div className="tiny muted" style={{ marginTop: 1 }}>ADHD Coach</div>
       </div>
 
-      {/* Brain dump FAB */}
-      <button className="fab" onClick={onOpenDump} aria-label="Brain dump">{BRAIN}</button>
-
-      {/* Mobile: left tabs, then right tabs with FAB in between (handled by CSS order) */}
-      {/* Desktop: all tabs listed vertically */}
+      {/* Mobile layout: LEFT tabs → FAB (centre) → RIGHT tabs
+          The nav-tabs-mobile divs use display:contents so their children
+          join the parent flex directly, keeping FAB visually centred.
+          Desktop: mobile groups hidden, FAB sits below the header. */}
       <div className="nav-tabs-mobile">
         {LEFT.map((t) => <Tab key={t.screen} t={t} />)}
       </div>
+
+      <button className="fab" onClick={onOpenDump} aria-label="Brain dump">{BRAIN}</button>
+
       <div className="nav-tabs-mobile">
         {RIGHT.map((t) => <Tab key={t.screen} t={t} />)}
       </div>
+
+      {/* Desktop sidebar: all nav items listed vertically */}
       <div className="nav-tabs-desktop">
         {ALL_NAV.map((t) => <Tab key={t.screen} t={t} />)}
       </div>
