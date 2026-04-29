@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { nanoid } from '../utils/nanoid';
 import { calcAppRecommendedTime, updateMultiplierB } from '../utils/scoring';
 import * as db from '../lib/db';
+import { supabase } from '../lib/supabase';
 import type {
   Task, Appointment, JournalEntry, UserProfile, UserEnergy, Screen, PatternEntry,
   EnergyLogEntry, MealEntry, SleepEntry
@@ -69,6 +70,7 @@ interface AppState {
   clearCompleted: () => void;
   resetAll: () => void;
   updateUserName: (name: string) => void;
+  signOut: () => Promise<void>;
 }
 
 function syncProfile(userId: string | null, profile: UserProfile | null) {
@@ -403,6 +405,24 @@ export const useStore = create<AppState>()(
         set((s) => ({ user: s.user ? { ...s.user, name } : s.user }));
         const { userId, user } = get();
         syncProfile(userId, user);
+      },
+
+      signOut: async () => {
+        const { userId, user, tasks, appointments, journal, energyLogs, mealLogs, sleepLogs } = get();
+
+        // Flush all local state to Supabase before clearing the session.
+        // Uses Promise.allSettled so a missing table (e.g. new schema not yet run)
+        // doesn't block the sign-out.
+        if (userId && user) {
+          try {
+            await db.fullSync(userId, { user, tasks, appointments, journal, energyLogs, mealLogs, sleepLogs });
+          } catch (e) {
+            console.error('Pre-sign-out sync failed:', e);
+          }
+        }
+
+        await supabase.auth.signOut();
+        // App.tsx useEffect will call clearSession() once auth state resolves to null
       },
     }),
     {

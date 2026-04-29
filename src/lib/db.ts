@@ -330,9 +330,11 @@ export async function deleteSleepLog(id: string) {
 
 
 // ─── Full data load ───────────────────────────────────────────────────────────
+// Uses allSettled so a missing table (e.g. energy_logs not yet created)
+// doesn't abort the whole load — profile and tasks still come through.
 
 export async function loadAllUserData(userId: string) {
-  const [profile, tasks, appointments, journal, energyLogs, mealLogs, sleepLogs] = await Promise.all([
+  const results = await Promise.allSettled([
     fetchProfile(userId),
     fetchTasks(userId),
     fetchAppointments(userId),
@@ -341,5 +343,119 @@ export async function loadAllUserData(userId: string) {
     fetchMealLogs(userId),
     fetchSleepLogs(userId),
   ]);
-  return { profile, tasks, appointments, journal, energyLogs, mealLogs, sleepLogs };
+  return {
+    profile:      results[0].status === 'fulfilled' ? results[0].value : null,
+    tasks:        results[1].status === 'fulfilled' ? (results[1].value as Task[]) : [],
+    appointments: results[2].status === 'fulfilled' ? (results[2].value as Appointment[]) : [],
+    journal:      results[3].status === 'fulfilled' ? (results[3].value as JournalEntry[]) : [],
+    energyLogs:   results[4].status === 'fulfilled' ? (results[4].value as EnergyLogEntry[]) : [],
+    mealLogs:     results[5].status === 'fulfilled' ? (results[5].value as MealEntry[]) : [],
+    sleepLogs:    results[6].status === 'fulfilled' ? (results[6].value as SleepEntry[]) : [],
+  };
+}
+
+
+// ─── Full sync (upsert everything) ───────────────────────────────────────────
+// Called before sign-out to guarantee all local state is persisted.
+// Uses upsert (insert + update on conflict) so it's safe to call at any time.
+
+export async function fullSync(userId: string, state: {
+  user: UserProfile;
+  tasks: Task[];
+  appointments: Appointment[];
+  journal: JournalEntry[];
+  energyLogs: EnergyLogEntry[];
+  mealLogs: MealEntry[];
+  sleepLogs: SleepEntry[];
+}) {
+  const { user, tasks, appointments, journal, energyLogs, mealLogs, sleepLogs } = state;
+
+  await Promise.allSettled([
+    // Profile
+    supabase.from('profiles').upsert({
+      id: userId,
+      name: user.name,
+      multiplier_b: user.multiplierB,
+      xp: user.xp,
+      symptoms: user.symptoms,
+      current_energy: user.currentEnergy,
+      stuck_mode: user.stuckMode,
+      last_active: user.lastActive,
+      onboarding_complete: user.onboardingComplete,
+      tutorial_seen: user.tutorialSeen,
+      pattern_history: user.patternHistory,
+    }),
+
+    // Tasks (upsert by id)
+    tasks.length > 0 && supabase.from('tasks').upsert(
+      tasks.map((t) => ({
+        id: t.id, user_id: userId,
+        title: t.title, description: t.description,
+        priority: t.priority, energy_required: t.energyRequired,
+        location: t.location, deadline: t.deadline ?? null,
+        user_estimated_time: t.userEstimatedTime, app_recommended_time: t.appRecommendedTime,
+        waiting_on: t.waitingOn ?? null, bucket_tag: t.bucketTag,
+        recurrence: t.recurrence, is_scaffolded: t.isScaffolded,
+        completed: t.completed, completed_via_focus: t.completedViaFocus,
+        actual_time: t.actualTime ?? null, completed_at: t.completedAt ?? null,
+        created_at: t.createdAt,
+      })),
+      { onConflict: 'id' }
+    ),
+
+    // Appointments
+    appointments.length > 0 && supabase.from('appointments').upsert(
+      appointments.map((a) => ({
+        id: a.id, user_id: userId,
+        title: a.title, description: a.description,
+        location: a.location, deadline: a.deadline,
+        energy_required: a.energyRequired, bucket_tag: a.bucketTag,
+        waiting_on: a.waitingOn ?? null, completed: a.completed,
+        created_at: a.createdAt,
+      })),
+      { onConflict: 'id' }
+    ),
+
+    // Journal entries
+    journal.length > 0 && supabase.from('journal_entries').upsert(
+      journal.map((j) => ({
+        id: j.id, user_id: userId,
+        mood: j.mood, daily_energy: j.dailyEnergy,
+        entry_text: j.entryText, memory_image_url: j.memoryImageUrl ?? null,
+        created_at: j.createdAt,
+      })),
+      { onConflict: 'id' }
+    ),
+
+    // Energy logs
+    energyLogs.length > 0 && supabase.from('energy_logs').upsert(
+      energyLogs.map((e) => ({
+        id: e.id, user_id: userId,
+        energy: e.energy, note: e.note ?? null,
+        created_at: e.createdAt,
+      })),
+      { onConflict: 'id' }
+    ),
+
+    // Meal logs
+    mealLogs.length > 0 && supabase.from('meal_logs').upsert(
+      mealLogs.map((m) => ({
+        id: m.id, user_id: userId,
+        meal_type: m.mealType, description: m.description,
+        rating: m.rating ?? null, created_at: m.createdAt,
+      })),
+      { onConflict: 'id' }
+    ),
+
+    // Sleep logs
+    sleepLogs.length > 0 && supabase.from('sleep_logs').upsert(
+      sleepLogs.map((s) => ({
+        id: s.id, user_id: userId,
+        bedtime: s.bedtime, wake_time: s.wakeTime,
+        quality: s.quality, notes: s.notes ?? null,
+        created_at: s.createdAt,
+      })),
+      { onConflict: 'id' }
+    ),
+  ]);
 }

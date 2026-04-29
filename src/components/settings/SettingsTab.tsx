@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { getLevel, LEVELS } from '../../utils/levels';
-import { supabase } from '../../lib/supabase';
 
 const SYMPTOM_LABELS: Record<string, string> = {
   'time-blindness':       'Time Blindness',
@@ -18,11 +17,13 @@ export default function SettingsTab() {
   const clearCompleted = useStore((s) => s.clearCompleted);
   const resetAll       = useStore((s) => s.resetAll);
   const updateUserName = useStore((s) => s.updateUserName);
+  const signOut        = useStore((s) => s.signOut);
 
   const [editingName, setEditingName] = useState(false);
   const [nameVal, setNameVal]         = useState(user?.name ?? '');
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [signingOut, setSigningOut]     = useState(false);
 
   if (!user) return null;
 
@@ -235,13 +236,30 @@ export default function SettingsTab() {
         {/* Sign out */}
         <Section title="Account">
           <div style={{ borderBottom: 'none' }}>
-            <Row
-              label="Sign out"
-              value="You'll need to sign in again to access your data"
-              onPress={async () => { await supabase.auth.signOut(); }}
-              danger
-              chevron
-            />
+            {signingOut ? (
+              <div className="row" style={{ gap: 12, padding: '14px 16px' }}>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2.5px solid var(--line)', borderTopColor: 'var(--charcoal)', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>Saving your data…</div>
+                  <div className="tiny muted" style={{ marginTop: 2 }}>Syncing to cloud before signing out</div>
+                </div>
+              </div>
+            ) : (
+              <Row
+                label="Sign out"
+                value="Data is saved to cloud before sign-out"
+                onPress={async () => {
+                  setSigningOut(true);
+                  try {
+                    await signOut();
+                  } catch {
+                    setSigningOut(false);
+                  }
+                }}
+                danger
+                chevron
+              />
+            )}
           </div>
         </Section>
 
