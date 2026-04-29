@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { fillCapacityBucket } from '../../utils/scoring';
 import { getLevel } from '../../utils/levels';
@@ -6,8 +5,6 @@ import TaskCard from './TaskCard';
 import StuckMode from './StuckMode';
 import EnergyBattery from './EnergySelector';
 import TutorialOverlay from '../shared/TutorialOverlay';
-import CommandCenter from '../tasks/CommandCenter';
-import BottomNav from '../layout/BottomNav';
 import type { UserEnergy } from '../../types';
 
 export default function TodayView() {
@@ -16,16 +13,11 @@ export default function TodayView() {
   const setUserEnergy = useStore((s) => s.setUserEnergy);
   const setScreen = useStore((s) => s.setScreen);
   const toggleStuckMode = useStore((s) => s.toggleStuckMode);
-  const [showDump, setShowDump] = useState(false);
 
   if (!user) return null;
-  if (user.stuckMode) return (
-    <>
-      <StuckMode />
-      <BottomNav onOpenDump={() => setShowDump(true)} />
-      {showDump && <CommandCenter onClose={() => setShowDump(false)} />}
-    </>
-  );
+  // StuckMode renders as a full-screen replacement for the task list.
+  // BottomNav is handled by App.tsx for all screens including this one.
+  if (user.stuckMode) return <StuckMode />;
 
   const energy = user.currentEnergy as UserEnergy;
   const bucketTasks = fillCapacityBucket(tasks, energy);
@@ -196,8 +188,6 @@ export default function TodayView() {
         )}
       </div>
 
-      <BottomNav onOpenDump={() => setShowDump(true)} />
-      {showDump && <CommandCenter onClose={() => setShowDump(false)} />}
     </>
   );
 }

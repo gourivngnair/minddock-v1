@@ -1258,7 +1258,6 @@ textarea.input { resize: none; }
   .bottom-dock .fab::after { content: 'Brain Dump'; }
   .bottom-dock .fab:hover  { transform: none; background: #211c2e; box-shadow: 0 4px 16px rgba(22,18,31,0.25); }
 
-  .app-main       { max-width: 800px; }
   .topbar         { padding: 24px 32px 14px; }
   .screen-scroll  { padding: 0 32px 60px; }
   .filter-bar     { padding: 0 32px 10px; }
@@ -1268,6 +1267,5 @@ textarea.input { resize: none; }
 
 /* ── Large desktop (1400px+) ── */
 @media (min-width: 1400px) {
-  .bottom-dock { width: 250px; }
-  .app-main    { max-width: 1000px; }
+  .bottom-dock { width: 260px; }
 }
