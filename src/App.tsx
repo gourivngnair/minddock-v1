@@ -67,7 +67,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
+      <div className="app-shell">
         {!authUser && <AuthScreen />}
 
         {authUser && (
