@@ -81,17 +81,16 @@ body {
   overflow: hidden;
 }
 
-/* .app-shell is the REAL layout container — this is what we make responsive.
-   It is a direct child of #root and the direct parent of .bottom-dock and .app-main. */
+/* .app-shell: direct parent of .bottom-dock and .app-main */
 .app-shell {
   display: flex;
-  flex-direction: column;   /* mobile: stacked column */
+  flex-direction: column;
   width: 100%;
   height: 100dvh;
   overflow: hidden;
 }
 
-/* app-main fills available space on every breakpoint */
+/* app-main: fills available space on every breakpoint */
 .app-main {
   flex: 1;
   display: flex;
@@ -100,140 +99,11 @@ body {
   min-height: 0;
 }
 
-/* sidebar-header and desktop nav group hidden on mobile */
+/* Desktop-only elements hidden by default */
 .sidebar-header   { display: none; }
 .nav-tabs-desktop { display: none; }
-/* mobile groups dissolve into the parent flex with display:contents */
+/* Mobile nav groups dissolved into parent flex */
 .nav-tabs-mobile  { display: contents; }
-
-
-/* ── Tablet: wider column, more breathing room ── */
-@media (min-width: 640px) {
-  #root           { max-width: 640px; }
-  .topbar         { padding: 20px 24px 12px; }
-  .screen-scroll  { padding: 0 24px 130px; }
-  .filter-bar     { padding: 0 24px 10px; }
-  .sort-row       { padding: 0 24px 6px; }
-  .filter-summary { margin: 0 24px 8px; }
-}
-
-
-/* ── Desktop: sidebar layout ── */
-@media (min-width: 1024px) {
-
-  /* Expand the viewport frame to fill the screen */
-  #root {
-    max-width: 100%;
-    margin: 0;
-  }
-
-  /* app-shell becomes the horizontal flex container */
-  .app-shell {
-    flex-direction: row;   /* sidebar | content side-by-side */
-  }
-
-  /* Convert the bottom dock into a left sidebar */
-  .bottom-dock {
-    position: relative;    /* no longer fixed */
-    bottom: auto;
-    left: auto;
-    right: auto;
-    width: 230px;
-    height: 100dvh;
-    max-width: none;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
-    border-top: none;
-    border-right: 1px solid var(--line);
-    padding: 0 0 20px;
-    background: #fff;
-    flex-shrink: 0;
-    z-index: 40;
-  }
-
-  /* Sidebar wordmark header */
-  .sidebar-header {
-    display: block;
-    padding: 24px 20px 16px;
-    border-bottom: 1px solid var(--line-soft);
-    margin-bottom: 8px;
-    flex-shrink: 0;
-  }
-
-  /* Show desktop nav list, hide mobile groups */
-  .nav-tabs-mobile  { display: none; }
-  .nav-tabs-desktop {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    overflow-y: auto;
-  }
-
-  /* Sidebar tab buttons: horizontal label + icon */
-  .bottom-dock .tab-btn {
-    flex-direction: row;
-    gap: 12px;
-    height: auto;
-    flex: none;
-    padding: 11px 18px;
-    border-radius: 10px;
-    margin: 2px 10px;
-    justify-content: flex-start;
-    font-size: 0.86rem;
-    font-weight: 500;
-  }
-  .bottom-dock .tab-btn svg { width: 18px; height: 18px; }
-  .bottom-dock .tab-btn.active::after { display: none; }
-  .bottom-dock .tab-btn.active {
-    background: var(--slate-blue-soft);
-    color: var(--slate-blue-deep);
-  }
-  .bottom-dock .tab-btn.active svg { stroke: var(--slate-blue-deep); }
-  .bottom-dock .tab-btn:hover { background: var(--paper2); color: var(--ink-soft); }
-
-  /* FAB → wide sidebar pill */
-  .bottom-dock .fab {
-    transform: none;
-    width: calc(100% - 20px);
-    height: 44px;
-    border-radius: 12px;
-    margin: 12px 10px 4px;
-    box-shadow: none;
-    border: none;
-    justify-content: flex-start;
-    gap: 12px;
-    padding: 0 18px;
-    font-size: 0.86rem;
-    font-weight: 600;
-    letter-spacing: 0;
-    flex-shrink: 0;
-  }
-  .bottom-dock .fab::after { content: 'Brain Dump'; }
-  .bottom-dock .fab:hover  {
-    transform: none;
-    background: #211c2e;
-    box-shadow: 0 4px 16px rgba(22,18,31,0.25);
-  }
-
-  /* Content area */
-  .app-main { max-width: 800px; }
-
-  .topbar         { padding: 24px 32px 14px; }
-  .screen-scroll  { padding: 0 32px 60px; }
-  .filter-bar     { padding: 0 32px 10px; }
-  .sort-row       { padding: 0 32px 6px; }
-  .filter-summary { margin: 0 32px 8px; }
-}
-
-
-/* ── Large desktop ── */
-@media (min-width: 1400px) {
-  .bottom-dock { width: 250px; }
-  .app-main    { max-width: 1000px; }
-}
 
 /* ── Typography helpers ── */
 .serif  { font-family: 'Lora', Georgia, serif; }
@@ -1281,4 +1151,123 @@ textarea.input { resize: none; }
   background: #fff;
   border-radius: 10px;
   margin-bottom: 8px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE OVERRIDES — must live at the END of this file so they appear
+   AFTER all component base styles in the cascade (same specificity = last
+   rule wins). Moving these to the top caused base styles to override them.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tablet (640px+): wider column ── */
+@media (min-width: 640px) {
+  #root           { max-width: 640px; }
+  .topbar         { padding: 20px 24px 12px; }
+  .screen-scroll  { padding: 0 24px 130px; }
+  .filter-bar     { padding: 0 24px 10px; }
+  .sort-row       { padding: 0 24px 6px; }
+  .filter-summary { margin: 0 24px 8px; }
+}
+
+/* ── Desktop (1024px+): sidebar layout ── */
+@media (min-width: 1024px) {
+
+  #root {
+    max-width: 100%;
+    margin: 0;
+  }
+
+  /* app-shell flips to row so sidebar and content sit side-by-side */
+  .app-shell {
+    flex-direction: row;
+  }
+
+  /* Bottom dock becomes a left sidebar */
+  .bottom-dock {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    width: 230px;
+    height: 100dvh;
+    max-width: none;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    border-top: none;
+    border-right: 1px solid var(--line);
+    padding: 0 0 20px;
+    background: #fff;
+    flex-shrink: 0;
+    z-index: 40;
+  }
+
+  .sidebar-header {
+    display: block;
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    margin-bottom: 8px;
+    flex-shrink: 0;
+  }
+
+  .nav-tabs-mobile  { display: none; }
+  .nav-tabs-desktop {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .bottom-dock .tab-btn {
+    flex-direction: row;
+    gap: 12px;
+    height: auto;
+    flex: none;
+    padding: 11px 18px;
+    border-radius: 10px;
+    margin: 2px 10px;
+    justify-content: flex-start;
+    font-size: 0.86rem;
+    font-weight: 500;
+  }
+  .bottom-dock .tab-btn svg        { width: 18px; height: 18px; }
+  .bottom-dock .tab-btn.active::after { display: none; }
+  .bottom-dock .tab-btn.active     { background: var(--slate-blue-soft); color: var(--slate-blue-deep); }
+  .bottom-dock .tab-btn.active svg { stroke: var(--slate-blue-deep); }
+  .bottom-dock .tab-btn:hover      { background: var(--paper2); color: var(--ink-soft); }
+
+  .bottom-dock .fab {
+    transform: none;
+    width: calc(100% - 20px);
+    height: 44px;
+    border-radius: 12px;
+    margin: 12px 10px 4px;
+    box-shadow: none;
+    border: none;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 18px;
+    font-size: 0.86rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    flex-shrink: 0;
+  }
+  .bottom-dock .fab::after { content: 'Brain Dump'; }
+  .bottom-dock .fab:hover  { transform: none; background: #211c2e; box-shadow: 0 4px 16px rgba(22,18,31,0.25); }
+
+  .app-main       { max-width: 800px; }
+  .topbar         { padding: 24px 32px 14px; }
+  .screen-scroll  { padding: 0 32px 60px; }
+  .filter-bar     { padding: 0 32px 10px; }
+  .sort-row       { padding: 0 32px 6px; }
+  .filter-summary { margin: 0 32px 8px; }
+}
+
+/* ── Large desktop (1400px+) ── */
+@media (min-width: 1400px) {
+  .bottom-dock { width: 250px; }
+  .app-main    { max-width: 1000px; }
 }
