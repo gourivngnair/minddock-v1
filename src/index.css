@@ -410,7 +410,7 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 7px 0;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--line-soft);
 }
 .journal-log-row:last-of-type { border-bottom: none; }
@@ -702,6 +702,23 @@ body {
 .input:focus { border-color: var(--slate-blue-deep); }
 .input::placeholder { color: var(--ink-muted); }
 textarea.input { resize: none; }
+
+/* ── Date / time inputs — force light theme, match design system ── */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"] {
+  color-scheme: light;   /* prevents OS dark-mode from inverting the picker */
+  background: #fff;
+  color: var(--ink);
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(35%) sepia(10%) saturate(400%) hue-rotate(10deg);
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px;
+}
 
 /* ── Mini chips (time picker) ── */
 .mini-chip {

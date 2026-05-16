@@ -5,35 +5,39 @@ import type { Priority, EnergyLevel, BucketTag } from '../../types';
 interface Props { onClose: () => void; }
 
 type Path = null | 'task' | 'journal' | 'appointment';
-type TaskAction = null | 'overlay';
+type TaskAction = null | 'overlay' | 'delegate';
 
-const adhd = (mins: number, mult = 1.2) => Math.round(mins * mult);
 const TIME_OPTS = [5, 10, 15, 30, 45, 60, 90];
 
 export default function CommandCenter({ onClose }: Props) {
-  const addTask = useStore((s) => s.addTask);
+  const addTask         = useStore((s) => s.addTask);
   const addJournalEntry = useStore((s) => s.addJournalEntry);
-  const addAppointment = useStore((s) => s.addAppointment);
-  const startFocus = useStore((s) => s.startFocus);
-  const setScreen = useStore((s) => s.setScreen);
+  const addAppointment  = useStore((s) => s.addAppointment);
+  const startFocus      = useStore((s) => s.startFocus);
+  const setScreen       = useStore((s) => s.setScreen);
+  const multiplierB     = useStore((s) => s.user?.multiplierB ?? 1.5);
 
-  const [path, setPath] = useState<Path>(null);
+  const [path, setPath]           = useState<Path>(null);
   const [taskAction, setTaskAction] = useState<TaskAction>(null);
-  const [title, setTitle] = useState('');
-  const [est, setEst] = useState(15);
-  const [priority, setPriority] = useState<Priority>(2);
-  const [energy, setEnergy] = useState<EnergyLevel>(2);
-  const [bucket] = useState<BucketTag>('Life');
-  const [location, setLocation] = useState<'home' | 'away'>('away');
-  const [deadline, setDeadline] = useState('');
+  const [title, setTitle]         = useState('');
+  const [est, setEst]             = useState(15);
+  const [priority, setPriority]   = useState<Priority>(2);
+  const [energy, setEnergy]       = useState<EnergyLevel>(2);
+  const [bucket]                  = useState<BucketTag>('Life');
+  const [location, setLocation]   = useState<'home' | 'away'>('home');
+  const [deadline, setDeadline]   = useState('');
   const [showDeadline, setShowDeadline] = useState(false);
-  const [journal, setJournal] = useState('');
-  const [aptTitle, setAptTitle] = useState('');
+  const [journal, setJournal]     = useState('');
+  const [aptTitle, setAptTitle]   = useState('');
+  const [delegateTo, setDelegateTo] = useState('');
 
   useEffect(() => {
-    setPath(null); setTaskAction(null); setTitle(''); setJournal(''); setAptTitle('');
-    setDeadline(''); setShowDeadline(false);
+    setPath(null); setTaskAction(null); setTitle(''); setJournal('');
+    setAptTitle(''); setDeadline(''); setShowDeadline(false); setDelegateTo('');
   }, []);
+
+  // Use real multiplierB so the preview matches what actually gets stored
+  const adjusted = (mins: number) => Math.round(mins * multiplierB);
 
   const taskPayload = () => ({
     title, description: '', priority, energyRequired: energy,
@@ -45,7 +49,6 @@ export default function CommandCenter({ onClose }: Props) {
 
   const doNow = () => {
     addTask(taskPayload());
-    // start focus after adding — get the last added task
     setTimeout(() => {
       const tasks = useStore.getState().tasks;
       const last = tasks[tasks.length - 1];
@@ -54,13 +57,10 @@ export default function CommandCenter({ onClose }: Props) {
     onClose();
   };
 
-  const doLater = () => {
-    addTask(taskPayload());
-    onClose();
-  };
+  const doLater = () => { addTask(taskPayload()); onClose(); };
 
   const doDelegate = () => {
-    addTask({ ...taskPayload(), priority: 1, energyRequired: 1, waitingOn: 'someone' });
+    addTask({ ...taskPayload(), priority: 1, energyRequired: 1, waitingOn: delegateTo.trim() || undefined });
     onClose();
   };
 
@@ -77,33 +77,19 @@ export default function CommandCenter({ onClose }: Props) {
               <div className="serif" style={{ fontSize: 24, fontWeight: 500, marginTop: 4, letterSpacing: '-0.025em' }}>What's in there?</div>
             </div>
             <div className="col" style={{ gap: 10 }}>
-              <button className="path-btn" onClick={() => setPath('task')}>
-                <div className="path-icon" style={{ background: 'var(--slate-blue-soft)', color: 'var(--slate-blue-deep)' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 15 }}>Task</div>
-                  <div className="tiny soft" style={{ marginTop: 2 }}>Something to do, eventually or now</div>
-                </div>
-              </button>
-              <button className="path-btn" onClick={() => setPath('journal')}>
-                <div className="path-icon" style={{ background: 'var(--sage-soft)', color: 'var(--sage-deep)' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 15 }}>Journal</div>
-                  <div className="tiny soft" style={{ marginTop: 2 }}>A feeling, a thought, a worry — held safely</div>
-                </div>
-              </button>
-              <button className="path-btn" onClick={() => setPath('appointment')}>
-                <div className="path-icon" style={{ background: 'var(--gold-soft)', color: 'var(--gold)' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 15 }}>Appointment</div>
-                  <div className="tiny soft" style={{ marginTop: 2 }}>Something at a time. We'll buffer travel.</div>
-                </div>
-              </button>
+              {[
+                { key: 'task', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>, bg: 'var(--slate-blue-soft)', color: 'var(--slate-blue-deep)', title: 'Task', sub: 'Something to do, eventually or now' },
+                { key: 'journal', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, bg: 'var(--sage-soft)', color: 'var(--sage-deep)', title: 'Journal', sub: 'A feeling, a thought, a worry — held safely' },
+                { key: 'appointment', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>, bg: 'var(--gold-soft)', color: 'var(--gold)', title: 'Appointment', sub: 'Something at a time. We\'ll buffer travel.' },
+              ].map((item) => (
+                <button key={item.key} className="path-btn" onClick={() => setPath(item.key as Path)}>
+                  <div className="path-icon" style={{ background: item.bg, color: item.color }}>{item.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 15 }}>{item.title}</div>
+                    <div className="tiny soft" style={{ marginTop: 2 }}>{item.sub}</div>
+                  </div>
+                </button>
+              ))}
             </div>
           </>
         )}
@@ -120,6 +106,7 @@ export default function CommandCenter({ onClose }: Props) {
                 <label>What is it?</label>
                 <input className="input" placeholder="e.g. Email landlord about leak" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
               </div>
+
               <div className="field">
                 <label>How long, in your head?</label>
                 <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
@@ -130,12 +117,12 @@ export default function CommandCenter({ onClose }: Props) {
                 <div className="adhd-hint">
                   <span className="row" style={{ gap: 6, fontSize: '0.78rem' }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>
-                    ADHD-adjusted estimate
+                    ADHD-adjusted ({multiplierB.toFixed(2)}×)
                   </span>
-                  <span className="mono" style={{ color: 'var(--slate-blue-deep)', fontWeight: 700 }}>~{adhd(est)}m</span>
+                  <span className="mono" style={{ color: 'var(--slate-blue-deep)', fontWeight: 700 }}>~{adjusted(est)}m</span>
                 </div>
               </div>
-              {/* Deadline — optional, toggle to reveal */}
+
               <div className="field">
                 <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
                   <label style={{ marginBottom: 0 }}>Deadline</label>
@@ -146,19 +133,10 @@ export default function CommandCenter({ onClose }: Props) {
                     {showDeadline ? 'Remove' : '+ Set deadline'}
                   </button>
                 </div>
-                {showDeadline ? (
-                  <input
-                    className="input"
-                    type="datetime-local"
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                    autoFocus
-                  />
-                ) : (
-                  <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', padding: '8px 0 0' }}>
-                    Optional — adds urgency scoring and shows on the calendar.
-                  </div>
-                )}
+                {showDeadline
+                  ? <input className="input" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} autoFocus />
+                  : <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', paddingTop: 4 }}>Optional — adds urgency scoring and shows on the calendar.</div>
+                }
               </div>
 
               <div className="field">
@@ -171,6 +149,7 @@ export default function CommandCenter({ onClose }: Props) {
                   ))}
                 </div>
               </div>
+
               <div className="field">
                 <label>Energy cost</label>
                 <div className="seg">
@@ -216,15 +195,35 @@ export default function CommandCenter({ onClose }: Props) {
                   <div className="tiny soft" style={{ marginTop: 2 }}>Save for when energy fits.</div>
                 </div>
               </button>
-              <button className="action-btn delegate" onClick={doDelegate}>
-                <div className="action-icon" style={{ background: 'rgba(184,138,44,0.12)' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              {/* Delegate — expands inline to ask who */}
+              {taskAction === 'overlay' && (
+                <div style={{ background: 'var(--gold-soft)', border: '1px solid #e8d5a0', borderRadius: 14, padding: '14px 16px' }}>
+                  <div className="row" style={{ gap: 12, marginBottom: delegateTo !== undefined ? 12 : 0 }}>
+                    <div className="action-icon" style={{ background: 'rgba(184,138,44,0.12)', flexShrink: 0 }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--charcoal)' }}>Delegate</div>
+                      <div className="tiny soft" style={{ marginTop: 2 }}>Mark "Waiting on" — out of your hands.</div>
+                    </div>
+                  </div>
+                  <input
+                    className="input"
+                    placeholder="Who are you handing this to? (optional)"
+                    value={delegateTo}
+                    onChange={(e) => setDelegateTo(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && doDelegate()}
+                    style={{ marginBottom: 10 }}
+                  />
+                  <button
+                    className="btn btn-block"
+                    style={{ background: 'var(--gold)', color: '#fff', borderRadius: 10, padding: '10px', fontWeight: 600, border: 'none', cursor: 'pointer', width: '100%' }}
+                    onClick={doDelegate}
+                  >
+                    Delegate{delegateTo.trim() ? ` to ${delegateTo.trim()}` : ''}
+                  </button>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 15 }}>Delegate</div>
-                  <div className="tiny soft" style={{ marginTop: 2 }}>Mark "Waiting on" — out of your hands.</div>
-                </div>
-              </button>
+              )}
             </div>
           </>
         )}
@@ -264,7 +263,7 @@ export default function CommandCenter({ onClose }: Props) {
                 <input className="input" placeholder="e.g. Therapy, 2:30 PM" value={aptTitle} onChange={(e) => setAptTitle(e.target.value)} autoFocus />
               </div>
               <div className="field">
-                <label>Date & time</label>
+                <label>Date &amp; time</label>
                 <input className="input" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
               </div>
               <div className="field">

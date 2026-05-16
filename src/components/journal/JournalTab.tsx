@@ -37,28 +37,34 @@ const SLEEP_Q: Record<SleepQuality, { label: string; color: string }> = {
   5: { label: 'Great',  color: 'var(--sky)' },
 };
 
-/* ── Section card wrapper ── */
+/* ── Section: lightweight label + content, no heavy card box ── */
 function Section({ icon, title, color, count, action, empty, children }: {
   icon: string; title: string; color: string; count: number;
   action?: React.ReactNode; empty?: string; children?: React.ReactNode;
 }) {
   return (
-    <div className="journal-section">
-      <div className="journal-section-header" style={{ background: `${color}0d`, borderTop: `3px solid ${color}` }}>
-        <div className="journal-section-title" style={{ color }}>
-          <span style={{ fontSize: 16 }}>{icon}</span>
-          {title}
+    <div style={{ marginBottom: 20 }}>
+      {/* Label row */}
+      <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
+        <div className="row" style={{ gap: 7 }}>
+          <span style={{ fontSize: 14, lineHeight: 1 }}>{icon}</span>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color }}>
+            {title}
+          </span>
           {count > 0 && (
-            <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: `${color}20`, color, marginLeft: 2 }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: `${color}18`, color }}>
               {count}
             </span>
           )}
         </div>
         {action}
       </div>
-      <div className="journal-section-body">
+
+      {/* Content */}
+      <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, overflow: 'hidden' }}>
         {children || (
-          <div style={{ textAlign: 'center', padding: '14px 0', color: 'var(--ink-muted)', fontSize: 13 }}>
+          <div style={{ padding: '14px 14px', color: 'var(--ink-muted)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ opacity: 0.4 }}>{icon}</span>
             {empty}
           </div>
         )}
@@ -72,13 +78,13 @@ function AddBtn({ label, color, onClick }: { label: string; color: string; onCli
     <button
       onClick={onClick}
       style={{
-        marginTop: 8, display: 'flex', alignItems: 'center', gap: 7,
-        padding: '8px 12px', borderRadius: 9, cursor: 'pointer',
-        background: `${color}10`, border: `1.5px dashed ${color}`,
-        color, fontWeight: 600, fontSize: '0.78rem', transition: 'all 0.15s',
+        display: 'flex', alignItems: 'center', gap: 5,
+        padding: '0', cursor: 'pointer',
+        background: 'none', border: 'none',
+        color, fontWeight: 600, fontSize: '0.75rem',
       }}
     >
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
       {label}

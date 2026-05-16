@@ -274,60 +274,71 @@ export default function TasksTab() {
   const TaskRow = ({ task }: { task: Task }) => {
     const urgent  = isDueSoon(task);
     const isPast  = task.deadline ? new Date(task.deadline).getTime() < Date.now() && !task.completed : false;
-    const bucketColor = BUCKETS.find((b) => b.value === task.bucketTag)?.color ?? 'var(--ink-muted)';
 
     return (
       <div style={{
         background: task.completed ? 'var(--paper2)' : '#fff',
         border: `1px solid ${urgent && !task.completed ? '#e8d5a0' : 'var(--line)'}`,
-        borderLeft: `3px solid ${task.completed ? 'var(--line)' : bucketColor}`,
-        borderRadius: 12,
+        borderRadius: 14,
         padding: '12px 14px',
         marginBottom: 8,
       }}>
         <div className="row" style={{ gap: 10 }}>
-          {/* Checkbox */}
-          <button
-            onClick={() => completeTask(task.id)}
-            style={{
-              width: 20, height: 20, borderRadius: 6,
-              border: `2px solid ${PRI_COLORS[task.priority]}`,
-              background: task.completed ? PRI_COLORS[task.priority] : 'transparent',
-              cursor: 'pointer', flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            {task.completed && (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            )}
-          </button>
+          {/* Bucket dot + checkbox combined */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <div className={`task-dot ${task.bucketTag}`} style={{ width: 10, height: 10 }} />
+            <button
+              onClick={() => completeTask(task.id)}
+              style={{
+                width: 20, height: 20, borderRadius: 6,
+                border: `2px solid ${task.completed ? 'var(--sage)' : PRI_COLORS[task.priority]}`,
+                background: task.completed ? 'var(--sage)' : 'transparent',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {task.completed && (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              )}
+            </button>
+          </div>
 
-          {/* Main content */}
+          {/* Main content — same layout as TaskCard */}
           <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === task.id ? null : task.id)}>
+            {/* Badges */}
+            <div className="row" style={{ gap: 5, marginBottom: 3, flexWrap: 'wrap' }}>
+              {task.isScaffolded  && <span className="badge sage">scaffold</span>}
+              {task.energyRequired === 1 && <span className="badge slate">easy</span>}
+              {task.waitingOn     && <span className="badge gold">⏳ {task.waitingOn}</span>}
+              {urgent && !task.completed && <span className="badge amber">⏰ due soon</span>}
+              {isPast             && <span className="badge red">past due</span>}
+            </div>
+            {/* Title */}
             <div style={{
-              fontWeight: 600, fontSize: 14, lineHeight: 1.35,
+              fontWeight: 600, fontSize: 14.5, lineHeight: 1.3,
               textDecoration: task.completed ? 'line-through' : 'none',
               color: task.completed ? 'var(--ink-muted)' : 'var(--charcoal)',
             }}>
               {task.title}
             </div>
-            <div className="row" style={{ gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 600, color: PRI_COLORS[task.priority] }}>
-                {PRI_LABELS[task.priority]}
-              </span>
-              <span style={{ color: 'var(--line)' }}>·</span>
-              <span className="tiny soft">{E_ICONS[task.energyRequired]} {E_LABELS[task.energyRequired]}</span>
-              <span style={{ color: 'var(--line)' }}>·</span>
-              <span className="tiny mono soft">
-                {task.userEstimatedTime}m → <strong style={{ color: 'var(--slate-blue-deep)' }}>{task.appRecommendedTime}m</strong>
-              </span>
-              {task.bucketTag && <span className="badge slate" style={{ padding: '1px 7px' }}>{task.bucketTag}</span>}
-              {task.waitingOn && <span className="badge gold">⏳ {task.waitingOn}</span>}
-              {urgent && !task.completed && <span className="badge amber">⏰ due soon</span>}
-              {isPast && <span className="badge red">Past due</span>}
+            {/* Meta — identical format to TaskCard */}
+            <div className="task-meta">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span className="mono tiny">{task.userEstimatedTime}m</span>
+              <span className="muted tiny">→</span>
+              <span className="mono tiny" style={{ color: 'var(--slate-blue-deep)', fontWeight: 600 }}>~{task.appRecommendedTime}m adjusted</span>
+              <span className="muted tiny">·</span>
+              <span className="tiny soft">{task.bucketTag}</span>
+              <span className="muted tiny">·</span>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600, color: PRI_COLORS[task.priority] }}>{PRI_LABELS[task.priority]}</span>
             </div>
+            {task.deadline && (
+              <div style={{ fontSize: '0.7rem', color: isPast ? 'var(--danger)' : 'var(--ink-muted)', marginTop: 3 }}>
+                Due {new Date(task.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+              </div>
+            )}
           </div>
 
           {/* Actions */}
