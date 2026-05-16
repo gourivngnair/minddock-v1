@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import LegalSheet from '../settings/LegalSheet';
 
 type Mode = 'signin' | 'signup' | 'reset';
 
@@ -17,10 +18,12 @@ export default function AuthScreen() {
   const [name,      setName]      = useState('');
   const [email,     setEmail]     = useState('');
   const [password,  setPassword]  = useState('');
-  const [loading,   setLoading]   = useState(false);
+  const [loading,      setLoading]      = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
-  const [error,     setError]     = useState('');
-  const [resetSent, setResetSent] = useState(false);
+  const [error,        setError]        = useState('');
+  const [resetSent,    setResetSent]    = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [legalDoc, setLegalDoc] = useState<'privacy' | 'terms' | null>(null);
 
   const handleSubmit = async () => {
     setError('');
@@ -100,7 +103,7 @@ export default function AuthScreen() {
       {mode !== 'reset' && (
         <button
           onClick={handleGoogle}
-          disabled={oauthLoading || loading}
+          disabled={oauthLoading || loading || (mode === 'signup' && !termsAccepted)}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
             width: '100%', padding: '13px 16px',
@@ -137,7 +140,7 @@ export default function AuthScreen() {
           {(['signin', 'signup'] as const).map((m) => (
             <button
               key={m}
-              onClick={() => { setMode(m); setError(''); }}
+              onClick={() => { setMode(m); setError(''); setTermsAccepted(false); }}
               style={{
                 flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', cursor: 'pointer',
                 background: mode === m ? '#fff' : 'transparent',
@@ -200,6 +203,47 @@ export default function AuthScreen() {
           </div>
         )}
 
+        {/* Terms acceptance — signup only */}
+        {mode === 'signup' && (
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '4px 0' }}>
+            {/* Custom checkbox */}
+            <div
+              onClick={() => setTermsAccepted((v) => !v)}
+              style={{
+                width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1,
+                border: `2px solid ${termsAccepted ? 'var(--accent-deep)' : 'var(--line-strong, var(--line))'}`,
+                background: termsAccepted ? 'var(--accent-deep)' : '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s var(--ease)',
+              }}
+            >
+              {termsAccepted && (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              )}
+            </div>
+            <span style={{ fontSize: '0.8rem', color: 'var(--ink-soft)', lineHeight: 1.55 }}>
+              I have read and agree to the{' '}
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); setLegalDoc('terms'); }}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent-deep)', fontWeight: 600, fontSize: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2 }}
+              >
+                Terms &amp; Conditions
+              </button>
+              {' '}and{' '}
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); setLegalDoc('privacy'); }}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent-deep)', fontWeight: 600, fontSize: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2 }}
+              >
+                Privacy Policy
+              </button>
+            </span>
+          </label>
+        )}
+
         {error && (
           <div style={{ background: 'var(--danger-soft)', border: '1px solid #fca5a5', borderRadius: 10, padding: '10px 13px', fontSize: '0.82rem', color: 'var(--danger)', lineHeight: 1.5 }}>
             {error}
@@ -208,7 +252,7 @@ export default function AuthScreen() {
 
         <button
           className="btn btn-primary btn-block btn-lg"
-          disabled={loading || oauthLoading || !email.trim() || (mode !== 'reset' && !password.trim())}
+          disabled={loading || oauthLoading || !email.trim() || (mode !== 'reset' && !password.trim()) || (mode === 'signup' && !termsAccepted)}
           onClick={handleSubmit}
           style={{ marginTop: 2 }}
         >
@@ -228,9 +272,12 @@ export default function AuthScreen() {
         )}
       </div>
 
-      <p style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--ink-muted)', marginTop: 4 }}>
-        Your data is encrypted and private. We never sell it.
+      <p style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--ink-muted)', marginTop: 4, lineHeight: 1.6 }}>
+        Your data is encrypted and private. We never sell it.{' '}
+        <button type="button" onClick={() => setLegalDoc('privacy')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--ink-muted)', fontSize: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2 }}>Privacy Policy</button>
       </p>
+
+      {legalDoc && <LegalSheet doc={legalDoc} onClose={() => setLegalDoc(null)} />}
     </div>
   );
 }
