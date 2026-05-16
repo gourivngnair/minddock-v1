@@ -25,6 +25,7 @@ export default function SettingsTab() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [signingOut, setSigningOut]     = useState(false);
+  const [resetting, setResetting]       = useState(false);
   const [legalDoc, setLegalDoc]         = useState<'privacy' | 'terms' | null>(null);
 
   if (!user) return null;
@@ -209,17 +210,29 @@ export default function SettingsTab() {
             </div>
           )}
 
-          {!confirmReset ? (
+          {resetting ? (
+            <div className="row" style={{ gap: 12, padding: '14px 16px' }}>
+              <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2.5px solid var(--line)', borderTopColor: 'var(--danger)', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>Resetting…</div>
+                <div className="tiny muted" style={{ marginTop: 2 }}>Clearing your data</div>
+              </div>
+            </div>
+          ) : !confirmReset ? (
             <div style={{ borderBottom: 'none' }}>
-              <Row label="Reset all app data" value="Wipes everything — name, tasks, journal, XP" onPress={() => setConfirmReset(true)} danger />
+              <Row label="Reset all app data" value="Wipes everything and restarts onboarding" onPress={() => setConfirmReset(true)} danger />
             </div>
           ) : (
             <div style={{ padding: '13px 16px' }}>
               <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--danger)' }}>Are you sure?</div>
-              <div className="tiny muted" style={{ marginTop: 3, marginBottom: 10 }}>This deletes all data permanently and restarts the app.</div>
+              <div className="tiny muted" style={{ marginTop: 3, marginBottom: 10 }}>All tasks, journal, and XP will be permanently deleted. You'll restart onboarding.</div>
               <div className="row" style={{ gap: 8 }}>
                 <button
-                  onClick={resetAll}
+                  onClick={async () => {
+                    setResetting(true);
+                    setConfirmReset(false);
+                    await resetAll();
+                  }}
                   style={{ flex: 1, padding: '8px', borderRadius: 8, background: 'var(--danger)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem' }}
                 >
                   Yes, reset everything

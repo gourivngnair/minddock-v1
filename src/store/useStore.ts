@@ -68,7 +68,7 @@ interface AppState {
   deleteSleepLog: (id: string) => void;
 
   clearCompleted: () => void;
-  resetAll: () => void;
+  resetAll: () => Promise<void>;
   updateUserName: (name: string) => void;
   signOut: () => Promise<void>;
 }
@@ -396,9 +396,33 @@ export const useStore = create<AppState>()(
         toDelete.forEach((id) => db.deleteTask(id).catch(console.error));
       },
 
-      resetAll: () => {
+      resetAll: async () => {
+        const { userId, user } = get();
+        const userName = user?.name ?? '';
+        // Wipe all Supabase content and reset profile to factory state
+        if (userId) {
+          await db.nukeUserData(userId, userName);
+        }
+        // Clear persisted localStorage
         localStorage.removeItem('minddock-v1');
-        window.location.reload();
+        // Reset in-memory state — keep userId so the user stays logged in
+        set({
+          tasks: [], appointments: [], journal: [],
+          energyLogs: [], mealLogs: [], sleepLogs: [],
+          screen: 'onboarding',
+          user: {
+            name: userName,
+            multiplierB: 1.5,
+            xp: 0,
+            symptoms: [],
+            currentEnergy: 3,
+            stuckMode: false,
+            lastActive: new Date().toISOString(),
+            onboardingComplete: false,
+            tutorialSeen: false,
+            patternHistory: [],
+          },
+        });
       },
 
       updateUserName: (name) => {

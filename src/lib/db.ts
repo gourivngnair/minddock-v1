@@ -459,3 +459,31 @@ export async function fullSync(userId: string, state: {
     ),
   ]);
 }
+
+// ─── Nuclear reset ────────────────────────────────────────────────────────────
+// Deletes all user content from every table and resets the profile to
+// its factory state so the next app load routes to onboarding.
+
+export async function nukeUserData(userId: string, userName: string) {
+  await Promise.allSettled([
+    supabase.from('tasks').delete().eq('user_id', userId),
+    supabase.from('appointments').delete().eq('user_id', userId),
+    supabase.from('journal_entries').delete().eq('user_id', userId),
+    supabase.from('energy_logs').delete().eq('user_id', userId),
+    supabase.from('meal_logs').delete().eq('user_id', userId),
+    supabase.from('sleep_logs').delete().eq('user_id', userId),
+    supabase.from('profiles').upsert({
+      id: userId,
+      name: userName,
+      multiplier_b: 1.5,
+      xp: 0,
+      symptoms: [],
+      current_energy: 3,
+      stuck_mode: false,
+      last_active: new Date().toISOString(),
+      onboarding_complete: false,
+      tutorial_seen: false,
+      pattern_history: [],
+    }),
+  ]);
+}
