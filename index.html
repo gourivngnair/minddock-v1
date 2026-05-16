@@ -1,17 +1,628 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MindDock</title>
-    <meta name="theme-color" content="#faf8f5" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MindDock — ADHD task manager that works with your brain</title>
+  <meta name="description" content="A capacity-aware task manager built for ADHD adults. See only what you can actually do right now — based on your energy, not your guilt." />
+  <meta name="theme-color" content="#eef2f6" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/landing.css" />
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav class="nav" id="top-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <div class="brand-mark"></div>
+      <span class="brand-name">MindDock</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#capacity">How it works</a>
+      <a href="#journal">Journal</a>
+      <a href="#levels">Levels</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-auth">
+      <a href="/app" class="btn btn-ghost">Sign in</a>
+      <a href="/app" class="btn btn-primary">Get started free</a>
+    </div>
+  </div>
+</nav>
+
+<hr class="rule" />
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div class="hero-grid">
+
+    <!-- Left copy -->
+    <div>
+      <div class="hero-eyebrow">
+        <div class="dot"></div>
+        <span class="kicker">Built for ADHD adults</span>
+      </div>
+      <h1>Your brain,<br><span class="em">finally</span><br>on your side.</h1>
+      <p class="lede">
+        MindDock is a capacity-aware task manager that shows you only what you can actually do right now — based on your energy, not your guilt.
+      </p>
+      <div class="hero-ctas">
+        <a href="/app" class="btn btn-primary btn-lg">Start for free</a>
+        <a href="#capacity" class="btn btn-outline btn-lg">See how it works</a>
+      </div>
+      <div class="hero-meta">
+        <span class="check">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Free to use
+        </span>
+        <span class="check">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          No overwhelming lists
+        </span>
+        <span class="check">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Private &amp; encrypted
+        </span>
+      </div>
+    </div>
+
+    <!-- Right phone mock -->
+    <div class="hero-mock">
+      <div class="hero-sticker s1">
+        <div class="glyph sage">✓</div>
+        <div class="lbl-row">
+          <span class="lbl">Focus session done</span>
+          <span>+20 XP earned</span>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="phone-top">
+          <div>
+            <div class="greet-kicker">Saturday · May 17</div>
+            <div class="greet">Hi, <span class="em">Alex.</span></div>
+          </div>
+          <div class="lvl">⚡ Lv 4</div>
+        </div>
+        <div class="phone-body">
+
+          <div class="energy-card">
+            <div class="energy-label">
+              <span>CAPACITY · NOW</span>
+              <span class="v">STEADY</span>
+            </div>
+            <div class="battery" id="hero-battery">
+              <button data-level="1" data-active="true"></button>
+              <button data-level="2" data-active="true"></button>
+              <button data-level="3" data-active="true"></button>
+              <button data-level="4" data-active="false"></button>
+              <button data-level="5" data-active="false"></button>
+            </div>
+            <div class="scale">
+              <span>Drained</span><span>Steady</span><span>Sparked</span>
+            </div>
+          </div>
+
+          <div class="tb-strip">
+            <div class="pct">24<span>%</span></div>
+            <div class="txt">
+              <div class="lbl">Heads up</div>
+              Things take you ~24% longer than you guess. Estimates quietly padded.
+            </div>
+          </div>
+
+          <div class="task-mock">
+            <div class="checkbox"></div>
+            <div class="dot admin"></div>
+            <div class="body">
+              <span class="badge urgent">urgent</span>
+              <div class="title">Reply to landlord about the leak</div>
+              <div class="meta">10m → <span class="adj">~15m</span> · admin</div>
+            </div>
+          </div>
+
+          <div class="task-mock">
+            <div class="checkbox"></div>
+            <div class="dot life"></div>
+            <div class="body">
+              <span class="badge easy">easy</span>
+              <div class="title">Drop laundry in the washer</div>
+              <div class="meta">5m → <span class="adj">~7m</span> · life</div>
+            </div>
+          </div>
+
+          <div class="task-mock muted">
+            <div class="checkbox"></div>
+            <div class="dot work"></div>
+            <div class="body">
+              <div class="title">Draft Q3 retrospective doc</div>
+              <div class="meta">60m → <span class="adj">~90m</span> · work</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="hero-sticker s2">
+        <div class="glyph gold">⏱</div>
+        <div class="lbl-row">
+          <span class="lbl">Time adjusted</span>
+          <span>Multiplier 1.24×</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MARQUEE ── -->
+<div class="marquee">
+  <div class="marquee-track">
+    <span>For the brain that forgets what it was doing mid-sentence</span>
+    <span class="bullet">·</span>
+    <span>For the brain that has 47 tabs open and zero tasks done</span>
+    <span class="bullet">·</span>
+    <span>For the brain that only works under deadline pressure</span>
+    <span class="bullet">·</span>
+    <span>For the brain that hyperfocuses for six hours on the wrong thing</span>
+    <span class="bullet">·</span>
+    <span>For the brain that forgets what it was doing mid-sentence</span>
+    <span class="bullet">·</span>
+    <span>For the brain that has 47 tabs open and zero tasks done</span>
+    <span class="bullet">·</span>
+    <span>For the brain that only works under deadline pressure</span>
+    <span class="bullet">·</span>
+    <span>For the brain that hyperfocuses for six hours on the wrong thing</span>
+    <span class="bullet">·</span>
+  </div>
+</div>
+
+<!-- ── PILLARS ── -->
+<section class="feature" id="features">
+  <div class="section-head center">
+    <span class="kicker">Four pillars</span>
+    <h2>Everything your brain <span class="em">actually needs.</span></h2>
+    <p class="lede">MindDock is built around four core ideas — each one designed to reduce the cognitive load ADHD adults carry every day.</p>
+  </div>
+  <div class="pillars">
+    <div class="pillar slate">
+      <div class="glyph">🧠</div>
+      <h3>Capacity-First</h3>
+      <p>Your daily list is built around what you can actually do right now — not what you think you should do or what's been sitting there the longest.</p>
+    </div>
+    <div class="pillar sage">
+      <div class="glyph">⏱</div>
+      <h3>Time-Blindness Coach</h3>
+      <p>An adaptive multiplier learns how long tasks actually take you and quietly adjusts every estimate — so you stop being late to yourself.</p>
+    </div>
+    <div class="pillar gold">
+      <div class="glyph">⚡</div>
+      <h3>Focus Mode</h3>
+      <p>Full-screen, distraction-free timer with break tracking. A post-session reality check shows you exactly how time really went.</p>
+    </div>
+    <div class="pillar lav">
+      <div class="glyph">📓</div>
+      <h3>ADHD Journal</h3>
+      <p>Daily log of mood, energy, meals, sleep, and completed tasks — pulled together automatically so you never start from a blank page.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── CAPACITY DEMO ── -->
+<section class="feature" id="capacity">
+  <div class="section-head">
+    <span class="kicker">Capacity-first engine</span>
+    <h2>Your list, <span class="em">filtered by today.</span></h2>
+    <p class="lede">Change your energy level and watch MindDock rebuild your task list in real time — surfacing only what you can actually complete right now.</p>
+  </div>
+  <div class="capacity-demo">
+    <div class="capacity-controls">
+      <div>
+        <div class="control-h">Your energy · now</div>
+        <div class="energy-big">
+          <div class="top">
+            <div class="lvl"><span id="cap-energy-lvl">2</span>/5</div>
+            <div class="label" id="cap-energy-label">Low</div>
+          </div>
+          <div class="battery large" id="cap-battery">
+            <button data-level="1" data-active="true"></button>
+            <button data-level="2" data-active="true"></button>
+            <button data-level="3" data-active="false"></button>
+            <button data-level="4" data-active="false"></button>
+            <button data-level="5" data-active="false"></button>
+          </div>
+          <div class="scale">
+            <span>Drained</span><span>Low</span><span>Steady</span><span>Decent</span><span>Sparked</span>
+          </div>
+        </div>
+      </div>
+      <div class="capacity-summary">
+        <div class="row h"><span>Capacity budget</span></div>
+        <div class="row"><span>Budget</span><span class="v" id="cap-budget">75m</span></div>
+        <div class="row"><span>Allocated</span><span class="v" id="cap-used">0m</span></div>
+        <div class="row"><span>Tasks shown</span><span class="v" id="cap-count">0</span></div>
+        <div style="height:6px;background:var(--paper3);border-radius:99px;overflow:hidden;margin-top:10px;">
+          <div id="cap-bar-inner" style="height:100%;background:var(--slate-blue);border-radius:99px;width:0%;transition:width 0.4s;"></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="control-h" style="margin-bottom:14px;">Tasks in your bucket</div>
+      <div class="capacity-list" id="cap-task-list"></div>
+      <div style="margin-top:20px;">
+        <div class="control-h" style="margin-bottom:10px;">Tucked away · <span id="cap-out-count">0 tasks</span></div>
+        <div class="capacity-list" id="cap-out-list"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TIME-BLINDNESS ── -->
+<section class="tb-section">
+  <div class="tb-inner">
+    <div class="section-head">
+      <span class="kicker">Time-blindness coach</span>
+      <h2>You said 30 mins.<br>You meant <span class="em">47 mins.</span></h2>
+      <p class="lede">ADHD brains are notoriously bad at time estimation. MindDock tracks every Focus session and runs a rolling average to quietly correct your guesses — without ever shaming you for it.</p>
+    </div>
+    <div class="tb-demo">
+      <h4>Live multiplier demo — drag to adjust your estimate</h4>
+      <div class="estimate-row">
+        <div>
+          <div class="col-h">You say it'll take</div>
+          <div class="mins"><span id="tb-est">30</span><span class="u">m</span></div>
+        </div>
+        <div>
+          <div class="col-h">App adjusts to</div>
+          <div class="mins adjusted"><span id="tb-adj">48</span><span class="u">m</span></div>
+        </div>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" id="tb-slider" min="5" max="120" value="30" />
+        <div class="slider-labels"><span>5m</span><span>60m</span><span>120m</span></div>
+      </div>
+      <div class="b-value">
+        <span>Your time-blindness multiplier</span>
+        <span class="b" id="tb-b">1.60×</span>
+      </div>
+      <div class="tb-formula">
+        <span class="key">B_new</span> = B_old × 0.7 + (actual ÷ estimated) × 0.3<br>
+        <span style="opacity:0.5;">Exponentially weighted · learns from every Focus session · never punishes you</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOCUS MODE ── -->
+<section class="feature">
+  <div class="feature-flex">
+    <div class="focus-mock">
+      <div class="focus-kicker">FOCUSING NOW</div>
+      <div class="task-name">Reply to landlord<br>about the leak</div>
+      <div class="ring-wrap">
+        <svg width="240" height="240" viewBox="0 0 240 240">
+          <circle cx="120" cy="120" r="108" stroke="rgba(255,255,255,0.07)" stroke-width="2" fill="none"/>
+          <circle cx="120" cy="120" r="108" stroke="url(#ring-grad)" stroke-width="3" fill="none"
+                  stroke-dasharray="678" stroke-dashoffset="200" stroke-linecap="round"
+                  transform="rotate(-90 120 120)"/>
+          <defs>
+            <linearGradient id="ring-grad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#a8baea"/>
+              <stop offset="1" stop-color="#6a82c4"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="ring-time">8:42<div class="of">of 15:00</div></div>
+      </div>
+      <div class="focus-controls">
+        <div class="pill">⏸ Break</div>
+        <div class="pill solid">✓ Done</div>
+      </div>
+    </div>
+    <div class="copy-block">
+      <span class="kicker">Focus mode</span>
+      <h3>One task.<br><span class="em">Full attention.</span></h3>
+      <p>Tap any task to enter Focus Mode — a distraction-free timer that tracks real working time, subtracts breaks, and uses the result to update your personal time multiplier.</p>
+      <ul class="feature-list">
+        <li><span class="icon">⚡</span><span><b>+20 XP</b> per Focus session — twice the quick-complete reward. Completing earns it, not just starting.</span></li>
+        <li><span class="icon lav">⏸</span><span><b>Break tracking</b> — add break time mid-session. Only pure working time trains the multiplier.</span></li>
+        <li><span class="icon coral">📊</span><span><b>Reality check</b> — a post-session screen shows estimated vs. actual and how your multiplier moved.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ── STUCK MODE ── -->
+<section class="feature">
+  <div class="feature-flex reverse">
+    <div class="copy-block">
+      <span class="kicker">Stuck mode</span>
+      <h3>Can't start?<br><span class="em">That's the feature.</span></h3>
+      <p>Toggle "I feel stuck" and MindDock instantly filters your list to tasks under 15 minutes with the lowest energy requirement. Get moving on one thing and let momentum do the rest.</p>
+      <ul class="feature-list">
+        <li><span class="icon">🧩</span><span><b>Scaffolded tasks</b> — chores broken into the tiniest completable steps. Starting feels smaller when the task is smaller.</span></li>
+        <li><span class="icon gold">⚡</span><span><b>Low-energy filter</b> — shows only tasks you can do even when executive function is in the basement.</span></li>
+        <li><span class="icon lav">🔁</span><span><b>Friction audit</b> — during onboarding, tell MindDock which life areas pile up and it creates your starter scaffolds automatically.</span></li>
+      </ul>
+    </div>
+    <div class="stuck-mock">
+      <div class="your-one">Your one task right now</div>
+      <div class="one-task">
+        <div class="title">Drop laundry in the washer</div>
+        <div class="meta">5m · low energy · scaffold</div>
+      </div>
+      <div style="font-size:13px;color:var(--ink-soft);line-height:1.55;margin-top:4px;">
+        Everything else is tucked away. This is all you need to look at.
+      </div>
+      <div class="actions">
+        <button class="btn-focus">⚡ Focus on this</button>
+        <button class="btn-skip">Skip →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── BRAIN DUMP ── -->
+<section class="feature" style="background:var(--paper2);">
+  <div class="split" style="max-width:1320px;margin:0 auto;">
+    <div class="copy-block">
+      <span class="kicker">Brain dump</span>
+      <h3>Every loose thought,<br><span class="em">captured instantly.</span></h3>
+      <p>One button, three paths: add a task, write a journal entry, or log an appointment. MindDock asks what to do with it — no sorting, no filing, no friction.</p>
+      <ul class="feature-list">
+        <li><span class="icon gold">⏰</span><span><b>Travel buffer</b> — "Away" appointments automatically get +25 min of pre-journey scaffold time.</span></li>
+        <li><span class="icon">📋</span><span><b>Delegate flow</b> — mark tasks as "waiting on someone" so they leave your active list without disappearing.</span></li>
+        <li><span class="icon lav">🔁</span><span><b>Recurrence</b> — daily, alternate days, weekly, biweekly, monthly, or quarterly.</span></li>
+      </ul>
+    </div>
+    <div class="dump-tree">
+      <div class="root">
+        <div class="icon">🧠</div>
+        <div>
+          <div class="title">Brain dump</div>
+          <div class="sub">What's in there?</div>
+        </div>
+      </div>
+      <div class="dump-branches">
+        <div class="dump-branch">
+          <div class="branch-title task"><div class="b-icon">✓</div> Task</div>
+          <p>Something to do — now or eventually.</p>
+        </div>
+        <div class="dump-branch">
+          <div class="branch-title journal"><div class="b-icon">📓</div> Journal</div>
+          <p>A thought or worry — held safely.</p>
+        </div>
+        <div class="dump-branch">
+          <div class="branch-title appt"><div class="b-icon">📅</div> Appointment</div>
+          <p>Something at a time, with travel buffer.</p>
+        </div>
+      </div>
+      <div class="dump-actions">
+        <div class="h">After adding a task, choose:</div>
+        <div class="options">
+          <div class="opt now"><span class="arr">→</span> <b>Do now</b> — launches Focus Mode immediately</div>
+          <div class="opt add"><span class="arr">→</span> <b>Add to list</b> — we'll surface it when energy fits</div>
+          <div class="opt del"><span class="arr">→</span> <b>Delegate</b> — moves to "waiting on" so it's off your plate</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── JOURNAL ── -->
+<section class="feature" id="journal">
+  <div class="split">
+    <div class="journal-mock">
+      <div class="day-h">
+        <div class="date">Saturday, May 17</div>
+        <div class="summary">
+          <span>📅 2</span><span>💭 1</span><span>✓ 4</span><span>🍽️ 2</span><span>💤</span>
+        </div>
+      </div>
+      <div class="j-section">
+        <div class="ico mood">💭</div>
+        <div class="body">
+          <div class="h"><span class="lbl">Mood &amp; Thoughts</span><span class="count">1 entry</span></div>
+          <div class="entry"><em>"Woke up foggy. Putting the pharmacy refill on the list and walking away from the guilt spiral."</em></div>
+        </div>
+      </div>
+      <div class="j-section">
+        <div class="ico energy">⚡</div>
+        <div class="body">
+          <div class="h"><span class="lbl">Energy Levels</span><span class="count">3 logs</span></div>
+          <div class="entry">9 AM · 2 &nbsp;·&nbsp; 11 AM · 4 &nbsp;·&nbsp; 3 PM · 2</div>
+        </div>
+      </div>
+      <div class="j-section">
+        <div class="ico tasks">✓</div>
+        <div class="body">
+          <div class="h"><span class="lbl">Tasks Completed</span><span class="count">4</span></div>
+          <div class="entry">Laundry · Reply to landlord · Morning meds · Make the bed</div>
+        </div>
+      </div>
+      <div class="j-section">
+        <div class="ico appt">📅</div>
+        <div class="body">
+          <div class="h"><span class="lbl">Appointments</span><span class="count">2</span></div>
+          <div class="entry">Therapy w/ Dr. Liu · Standup w/ design</div>
+        </div>
+      </div>
+      <div class="j-section">
+        <div class="ico sleep">💤</div>
+        <div class="body">
+          <div class="h"><span class="lbl">Sleep</span></div>
+          <div class="entry">11:30 PM → 7:45 AM &nbsp;·&nbsp; Quality 3/5</div>
+        </div>
+      </div>
+    </div>
+    <div class="copy-block">
+      <span class="kicker">Daily journal</span>
+      <h3>Every day,<br><span class="em">documented.</span></h3>
+      <p>A structured daily log that automatically pulls in your completed tasks, energy readings, and appointments — so you can see your full day without writing a word.</p>
+      <ul class="feature-list">
+        <li><span class="icon">💭</span><span><b>Mood &amp; Thoughts</b> — private text entries, timestamped and held safely. Never judged, never shared.</span></li>
+        <li><span class="icon coral">🍽️</span><span><b>Meal &amp; Sleep tracking</b> — log nutrition and sleep quality to spot energy-draining patterns over time.</span></li>
+        <li><span class="icon lav">📈</span><span><b>Energy timeline</b> — all readings plotted against time of day to reveal your natural daily rhythm.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ── LEVELS ── -->
+<section class="feature" id="levels">
+  <div class="section-head center">
+    <span class="kicker">XP &amp; levels</span>
+    <h2>Progress that <span class="em">actually feels good.</span></h2>
+    <p class="lede">Every completed task, journal entry, and Focus session earns XP. Ten levels from First Steps to ADHD Champion — because your wins deserve to be counted.</p>
+  </div>
+  <div class="levels">
+    <div class="level-card">
+      <span class="emoji">🌱</span>
+      <div class="lvl-num">LV 1</div>
+      <div class="lvl-name">First Steps</div>
+      <div class="xp">0 XP</div>
+    </div>
+    <div class="level-card">
+      <span class="emoji">🔥</span>
+      <div class="lvl-num">LV 2</div>
+      <div class="lvl-name">Getting Warmed</div>
+      <div class="xp">100 XP</div>
+    </div>
+    <div class="level-card">
+      <span class="emoji">⚡</span>
+      <div class="lvl-num">LV 3</div>
+      <div class="lvl-name">Building Spark</div>
+      <div class="xp">300 XP</div>
+    </div>
+    <div class="level-card current">
+      <span class="emoji">🎯</span>
+      <div class="lvl-num">LV 4</div>
+      <div class="lvl-name">Finding Focus</div>
+      <div class="xp">600 XP</div>
+    </div>
+    <div class="level-card">
+      <span class="emoji">🌊</span>
+      <div class="lvl-num">LV 5</div>
+      <div class="lvl-name">In the Flow</div>
+      <div class="xp">1000 XP</div>
+    </div>
+    <div class="level-card">
+      <span class="emoji">🚀</span>
+      <div class="lvl-num">LV 6</div>
+      <div class="lvl-name">Real Momentum</div>
+      <div class="xp">1600 XP</div>
+    </div>
+    <div class="level-card">
+      <span class="emoji">🔄</span>
+      <div class="lvl-num">LV 7</div>
+      <div class="lvl-name">Pattern Setter</div>
+      <div class="xp">2500 XP</div>
+    </div>
+    <div class="level-card">
+      <span class="emoji">🧠</span>
+      <div class="lvl-num">LV 8</div>
+      <div class="lvl-name">Deep Thinker</div>
+      <div class="xp">3700 XP</div>
+    </div>
+    <div class="level-card">
+      <span class="emoji">🏆</span>
+      <div class="lvl-num">LV 9</div>
+      <div class="lvl-name">Mind Architect</div>
+      <div class="xp">5000 XP</div>
+    </div>
+    <div class="level-card">
+      <span class="emoji">✨</span>
+      <div class="lvl-num">LV 10</div>
+      <div class="lvl-name">ADHD Champion</div>
+      <div class="xp">7500 XP</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PULL QUOTE ── -->
+<div class="no-shame">
+  <p class="quote">
+    "You're not <span class="em">lazy</span>.<br>
+    Your task manager just wasn't<br>
+    built for your brain."
+  </p>
+  <div class="attribution">— The MindDock philosophy</div>
+</div>
+
+<!-- ── FAQ ── -->
+<section class="feature" id="faq">
+  <div class="section-head center">
+    <span class="kicker">Questions</span>
+    <h2>Good questions,<br><span class="em">honest answers.</span></h2>
+  </div>
+  <div class="faq-list">
+    <details class="faq-item">
+      <summary>Is MindDock only for people with an ADHD diagnosis?</summary>
+      <div class="answer">No. MindDock is designed around the cognitive challenges that come with ADHD — time blindness, executive dysfunction, overwhelm — but it works for anyone who struggles with traditional task managers. A diagnosis is not required.</div>
+    </details>
+    <details class="faq-item">
+      <summary>How does the capacity bucket actually work?</summary>
+      <div class="answer">When you set your energy level (1–5), MindDock runs a scoring algorithm: <code>Score = (Priority × 1.5) + Urgency + EnergyMatch</code>. It then greedily packs tasks into a time budget for that energy level — e.g. Level 3 (Steady) gets 105 minutes. Tasks that don't fit are hidden, not deleted. They come back when you have more capacity or when energy increases.</div>
+    </details>
+    <details class="faq-item">
+      <summary>What is the Time-Blindness Multiplier and can I reset it?</summary>
+      <div class="answer">Every time you finish a Focus session, MindDock compares your estimate to real working time and updates your multiplier using an exponentially weighted moving average: <code>B_new = B_old × 0.7 + (actual ÷ estimated) × 0.3</code>. It starts at 1.5× and adjusts over time. You can reset it from the Settings panel — or reset all app data to start fresh.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Is my data private? Who can see it?</summary>
+      <div class="answer">Your data is stored in Supabase with Row-Level Security — meaning the database enforces that only your authenticated account can read or write your rows. We never sell your data, never use it to train AI models, and never share it with third parties beyond the infrastructure providers listed in the Privacy Policy.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Does it work offline?</summary>
+      <div class="answer">Yes. MindDock is local-first — all data is persisted to localStorage so the app works fully without a network connection. When you reconnect, changes sync to the cloud. A full sync also runs automatically before you sign out to prevent any data loss.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Is there a mobile app?</summary>
+      <div class="answer">MindDock is a Progressive Web App — open it in Chrome or Safari on your phone and use "Add to Home Screen" to get a native-feeling app icon. A dedicated Android app is on the roadmap.</div>
+    </details>
+    <details class="faq-item">
+      <summary>What does "scaffolded task" mean?</summary>
+      <div class="answer">Scaffolded tasks are large recurring chores broken into their smallest individual steps — "Start a load of laundry", "Move clothes to dryer", "Fold and put away". During onboarding you pick which life areas pile up for you and MindDock creates your first set of scaffolds automatically. They're designed so that starting feels smaller because each step is genuinely tiny.</div>
+    </details>
+  </div>
+</section>
+
+<!-- ── FINAL CTA ── -->
+<div class="final-cta">
+  <div class="final-cta-inner">
+    <h2>Ready to stop<br><span class="em">fighting your brain?</span></h2>
+    <p>MindDock is free to use. No credit card, no overwhelming setup. Just a task list that finally makes sense for how you think.</p>
+    <div class="final-cta-buttons">
+      <a href="/app" class="btn btn-primary btn-lg">Get started free</a>
+      <a href="/app" class="btn btn-outline btn-lg">Sign in</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer class="site-footer">
+  <div class="left">
+    <div class="brand-line">
+      <div class="brand-mark"></div>
+      <span class="brand-name">MindDock</span>
+    </div>
+    <div>An external brain for ADHD adults.</div>
+    <div class="copyright">© 2026 MindDock. All rights reserved.</div>
+  </div>
+  <div class="links">
+    <a href="#features">Features</a>
+    <a href="#capacity">How it works</a>
+    <a href="#faq">FAQ</a>
+    <a href="/app">Sign in</a>
+    <a href="/app">Get started</a>
+    <a href="mailto:privacy@minddock.app">Contact</a>
+  </div>
+</footer>
+
+<script src="/landing.js"></script>
+</body>
 </html>
