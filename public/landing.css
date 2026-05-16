@@ -1257,11 +1257,38 @@ section.feature {
   border-radius: 14px;
   padding: 18px 8px 16px;
   position: relative;
-  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, background 0.2s;
 }
 .level-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-md);
+  border-color: var(--slate-blue);
+  z-index: 2;
+}
+/* XP range tooltip */
+.level-card::after {
+  content: attr(data-range);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--charcoal);
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  padding: 5px 10px;
+  border-radius: 7px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.level-card:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 .level-card.current {
   background: var(--slate-blue-soft);
