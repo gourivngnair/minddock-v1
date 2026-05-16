@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { getLevel, LEVELS } from '../../utils/levels';
+import LegalSheet from './LegalSheet';
 
 const SYMPTOM_LABELS: Record<string, string> = {
   'time-blindness':       'Time Blindness',
@@ -24,6 +25,7 @@ export default function SettingsTab() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [signingOut, setSigningOut]     = useState(false);
+  const [legalDoc, setLegalDoc]         = useState<'privacy' | 'terms' | null>(null);
 
   if (!user) return null;
 
@@ -79,7 +81,7 @@ export default function SettingsTab() {
 
       {/* header */}
       <div className="topbar">
-        <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em' }}>Me</div>
+        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.03em' }}>Me</div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '6px 18px 110px' }}>
@@ -89,7 +91,7 @@ export default function SettingsTab() {
           <div className="row" style={{ gap: 14, marginBottom: 14 }}>
             {/* Avatar */}
             <div style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--charcoal)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <span className="serif" style={{ fontSize: 22, fontWeight: 600 }}>{user.name.charAt(0).toUpperCase()}</span>
+              <span style={{ fontSize: 22, fontWeight: 700 }}>{user.name.charAt(0).toUpperCase()}</span>
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -112,7 +114,7 @@ export default function SettingsTab() {
                 </div>
               ) : (
                 <div className="row" style={{ gap: 8 }}>
-                  <div className="serif" style={{ fontSize: 19, fontWeight: 500, letterSpacing: '-0.02em' }}>{user.name}</div>
+                  <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.025em' }}>{user.name}</div>
                   <button
                     onClick={() => { setNameVal(user.name); setEditingName(true); }}
                     style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', padding: 2 }}
@@ -265,7 +267,7 @@ export default function SettingsTab() {
 
         {/* About */}
         <Section title="About">
-          <div style={{ padding: '14px 16px' }}>
+          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--line-soft)' }}>
             <div style={{ fontWeight: 600, fontSize: 14.5, marginBottom: 5 }}>MindDock v1.1</div>
             <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.65, margin: 0 }}>
               An external brain for ADHD adults. MindDock filters the world based on your current cognitive capacity — no more choice paralysis, no more backlog shame.
@@ -276,9 +278,15 @@ export default function SettingsTab() {
               <span className="badge gold">Focus Mode XP</span>
             </div>
           </div>
+          <Row label="Privacy Policy" onPress={() => setLegalDoc('privacy')} chevron />
+          <div style={{ borderBottom: 'none' }}>
+            <Row label="Terms & Conditions" onPress={() => setLegalDoc('terms')} chevron />
+          </div>
         </Section>
 
       </div>
+
+      {legalDoc && <LegalSheet doc={legalDoc} onClose={() => setLegalDoc(null)} />}
     </div>
   );
 }
