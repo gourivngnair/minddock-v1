@@ -31,12 +31,12 @@ export default function TodayView() {
 
       <div className="topbar">
         <div>
-          <div className="tiny mono soft" style={{ letterSpacing: '0.08em' }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
+          <div className="kicker">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
           </div>
-          <div className="serif" style={{ fontSize: 24, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 2 }}>
-            Hi, {user.name}.
-          </div>
+          <h1 className="hello-heading">
+            Hi, <span className="em">{user.name}.</span>
+          </h1>
         </div>
         <button
           onClick={() => setScreen('patterns')}
@@ -55,14 +55,17 @@ export default function TodayView() {
 
         {/* Time-blindness strip */}
         {blindPct > 0 && (
-          <button className="blindness-strip" onClick={() => setScreen('patterns')} style={{ marginBottom: 12 }}>
+          <button className="blindness-strip" onClick={() => setScreen('patterns')}>
+            <div style={{ flexShrink: 0 }}>
+              <div className="blindness-num">{blindPct}<span className="pct">%</span></div>
+            </div>
             <div style={{ flex: 1 }}>
-              <div className="tiny mono soft" style={{ letterSpacing: '0.08em' }}>HEADS UP</div>
-              <div style={{ fontSize: 13.5, marginTop: 3, lineHeight: 1.45, color: 'var(--charcoal)' }}>
-                Things take you about <span className="num">{blindPct}%</span> longer than you guess. We've padded today's estimates.
+              <div className="kicker" style={{ marginBottom: 3 }}>Heads up</div>
+              <div style={{ fontSize: 13, lineHeight: 1.45, color: 'var(--ink)' }}>
+                Things take you about that much longer than you guess. Estimates are quietly padded.
               </div>
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--slate-blue-deep)" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-muted)" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         )}
 
@@ -107,15 +110,15 @@ export default function TodayView() {
         </button>
 
         {/* Task list */}
-        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
-          <div className="serif" style={{ fontSize: 18, fontWeight: 500, letterSpacing: '-0.02em' }}>Today</div>
-          <span className="tiny mono soft">{bucketTasks.length} items</span>
+        <div className="section-head">
+          <div className="h">For <span className="em">today.</span></div>
+          <span className="kicker">{bucketTasks.length} items</span>
         </div>
 
         <div className="col" style={{ gap: 10 }}>
           {bucketTasks.length === 0 ? (
             <div className="empty-state">
-              <div className="serif" style={{ fontSize: 18, fontWeight: 500, marginBottom: 4 }}>Nothing left.</div>
+              <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.02em' }}>Nothing left.</div>
               <div className="tiny soft">That's allowed. Rest counts.</div>
             </div>
           ) : (
@@ -126,9 +129,9 @@ export default function TodayView() {
         {/* Done section */}
         {doneTasks.length > 0 && (
           <>
-            <div className="row" style={{ justifyContent: 'space-between', marginTop: 24, marginBottom: 8 }}>
-              <div className="serif" style={{ fontSize: 16, fontWeight: 500, letterSpacing: '-0.02em' }}>Done today</div>
-              <span className="tiny mono soft">{doneTasks.length}</span>
+            <div className="section-head" style={{ marginTop: 24 }}>
+              <div className="h">Done <span className="em">today.</span></div>
+              <span className="kicker">{doneTasks.length}</span>
             </div>
             <div className="col" style={{ gap: 6 }}>
               {doneTasks.map((t) => (

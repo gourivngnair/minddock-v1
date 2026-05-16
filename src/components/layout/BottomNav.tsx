@@ -63,7 +63,7 @@ export default function BottomNav({ onOpenDump }: Props) {
     <div className="bottom-dock">
       {/* Sidebar header — only visible on desktop */}
       <div className="sidebar-header">
-        <div className="serif" style={{ fontSize: 17, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--charcoal)' }}>
+        <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--charcoal)' }}>
           MindDock
         </div>
         <div className="tiny muted" style={{ marginTop: 1 }}>ADHD Coach</div>
