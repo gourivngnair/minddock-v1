@@ -707,17 +707,34 @@ textarea.input { resize: none; }
 input[type="date"],
 input[type="datetime-local"],
 input[type="time"] {
-  color-scheme: light;   /* prevents OS dark-mode from inverting the picker */
+  color-scheme: light;          /* prevents OS dark-mode inverting native picker */
+  -webkit-appearance: none;
+  appearance: none;
   background: #fff;
   color: var(--ink);
+  font-family: inherit;
+  font-size: 0.93rem;
+  /* normalise browser padding differences */
+  padding: 11px 14px;
+  height: auto;
+  line-height: 1.4;
 }
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {
-  filter: invert(35%) sepia(10%) saturate(400%) hue-rotate(10deg);
   cursor: pointer;
-  border-radius: 4px;
-  padding: 2px;
+  opacity: 0.55;
+  padding: 0;
+  margin-left: 4px;
+}
+input[type="date"]::-webkit-datetime-edit,
+input[type="datetime-local"]::-webkit-datetime-edit,
+input[type="time"]::-webkit-datetime-edit {
+  color: var(--ink);
+}
+input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
 }
 
 /* ── Mini chips (time picker) ── */

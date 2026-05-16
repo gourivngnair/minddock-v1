@@ -5,7 +5,7 @@ import type { Priority, EnergyLevel, BucketTag } from '../../types';
 interface Props { onClose: () => void; }
 
 type Path = null | 'task' | 'journal' | 'appointment';
-type TaskAction = null | 'overlay' | 'delegate';
+type TaskAction = null | 'overlay' | 'delegate';  // 'delegate' = show the name form
 
 const TIME_OPTS = [5, 10, 15, 30, 45, 60, 90];
 
@@ -195,36 +195,51 @@ export default function CommandCenter({ onClose }: Props) {
                   <div className="tiny soft" style={{ marginTop: 2 }}>Save for when energy fits.</div>
                 </div>
               </button>
-              {/* Delegate — expands inline to ask who */}
-              {taskAction === 'overlay' && (
-                <div style={{ background: 'var(--gold-soft)', border: '1px solid #e8d5a0', borderRadius: 14, padding: '14px 16px' }}>
-                  <div className="row" style={{ gap: 12, marginBottom: delegateTo !== undefined ? 12 : 0 }}>
-                    <div className="action-icon" style={{ background: 'rgba(184,138,44,0.12)', flexShrink: 0 }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--charcoal)' }}>Delegate</div>
-                      <div className="tiny soft" style={{ marginTop: 2 }}>Mark "Waiting on" — out of your hands.</div>
-                    </div>
-                  </div>
-                  <input
-                    className="input"
-                    placeholder="Who are you handing this to? (optional)"
-                    value={delegateTo}
-                    onChange={(e) => setDelegateTo(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && doDelegate()}
-                    style={{ marginBottom: 10 }}
-                  />
-                  <button
-                    className="btn btn-block"
-                    style={{ background: 'var(--gold)', color: '#fff', borderRadius: 10, padding: '10px', fontWeight: 600, border: 'none', cursor: 'pointer', width: '100%' }}
-                    onClick={doDelegate}
-                  >
-                    Delegate{delegateTo.trim() ? ` to ${delegateTo.trim()}` : ''}
-                  </button>
+              {/* Delegate: tap to go to the name-entry step */}
+              <button className="action-btn delegate" onClick={() => setTaskAction('delegate')}>
+                <div className="action-icon" style={{ background: 'rgba(184,138,44,0.12)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 </div>
-              )}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 15 }}>Delegate</div>
+                  <div className="tiny soft" style={{ marginTop: 2 }}>Mark "Waiting on" — out of your hands.</div>
+                </div>
+              </button>
             </div>
+          </>
+        )}
+
+        {/* ── Delegate name form (step 3) ── */}
+        {path === 'task' && taskAction === 'delegate' && (
+          <>
+            <div className="row" style={{ justifyContent: 'space-between', marginBottom: 16 }}>
+              <button className="btn-ghost small" onClick={() => setTaskAction('overlay')}>← Back</button>
+              <div className="tiny mono soft" style={{ letterSpacing: '0.08em' }}>DELEGATE</div>
+            </div>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div className="serif" style={{ fontSize: 18, fontWeight: 500, lineHeight: 1.3, color: 'var(--charcoal)', padding: '0 8px' }}>
+                "{title}"
+              </div>
+              <div className="tiny muted" style={{ marginTop: 6 }}>This will be marked as waiting on someone else.</div>
+            </div>
+            <div className="field" style={{ marginBottom: 20 }}>
+              <label>Who are you delegating to?</label>
+              <input
+                className="input"
+                placeholder="e.g. Alex, the team, my accountant…"
+                value={delegateTo}
+                onChange={(e) => setDelegateTo(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && doDelegate()}
+                autoFocus
+              />
+              <div className="tiny muted" style={{ marginTop: 6 }}>Optional — leave blank to just mark it as blocked.</div>
+            </div>
+            <button
+              className="btn btn-primary btn-block btn-lg"
+              onClick={doDelegate}
+            >
+              {delegateTo.trim() ? `Delegate to ${delegateTo.trim()}` : 'Mark as waiting on someone'}
+            </button>
           </>
         )}
 
