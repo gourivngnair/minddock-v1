@@ -95,7 +95,10 @@ export default function CalendarTab() {
 
       {/* header */}
       <div className="topbar">
-        <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em' }}>Calendar</div>
+        <div>
+          <div className="kicker">{MONTHS[month]} {year}</div>
+          <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 2 }}>Calendar</div>
+        </div>
         <button
           onClick={goToday}
           style={{ padding: '6px 14px', borderRadius: 8, background: sameDay(selectedDate, today) ? 'var(--charcoal)' : 'var(--paper2)', border: `1px solid ${sameDay(selectedDate, today) ? 'var(--charcoal)' : 'var(--line)'}`, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, color: sameDay(selectedDate, today) ? '#fff' : 'var(--ink-soft)', transition: 'all 0.15s' }}

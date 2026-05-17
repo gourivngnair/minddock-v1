@@ -404,7 +404,8 @@ export default function TasksTab() {
 
       <div className="topbar">
         <div>
-          <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em' }}>Tasks</div>
+          <div className="kicker">All tasks</div>
+          <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 2 }}>Tasks</div>
           <div className="tiny muted" style={{ marginTop: 2 }}>{pending.length} pending · {done.length} done</div>
         </div>
         <button

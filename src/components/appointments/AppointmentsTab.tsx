@@ -320,7 +320,8 @@ export default function AppointmentsTab() {
 
       <div className="topbar">
         <div>
-          <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em' }}>Appointments</div>
+          <div className="kicker">Schedule</div>
+          <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 2 }}>Appointments</div>
           <div className="tiny muted" style={{ marginTop: 2 }}>{upcoming.length} upcoming · {past.length} past</div>
         </div>
         <button

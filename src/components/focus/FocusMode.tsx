@@ -63,10 +63,16 @@ export default function FocusMode() {
           <>
             <div className="ring-wrap">
               <svg width="240" height="240" viewBox="0 0 240 240">
+                <defs>
+                  <linearGradient id="ring-focus" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0" stopColor="#a8baea"/>
+                    <stop offset="1" stopColor="#6a82c4"/>
+                  </linearGradient>
+                </defs>
                 <circle cx="120" cy="120" r={R} stroke="rgba(255,255,255,0.08)" strokeWidth="2" fill="none" />
                 <circle
                   cx="120" cy="120" r={R}
-                  stroke="rgba(255,255,255,0.85)" strokeWidth="3" fill="none"
+                  stroke="url(#ring-focus)" strokeWidth="3.5" fill="none"
                   strokeDasharray={circ}
                   strokeDashoffset={circ * (1 - pct / 100)}
                   strokeLinecap="round"

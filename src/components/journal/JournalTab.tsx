@@ -493,7 +493,8 @@ export default function JournalTab() {
       {/* Header */}
       <div className="topbar">
         <div>
-          <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em' }}>Journal</div>
+          <div className="kicker">Daily log</div>
+          <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 2 }}>Journal</div>
           <div className="tiny muted" style={{ marginTop: 2 }}>{dateLabel}</div>
         </div>
         <div className="row" style={{ gap: 8 }}>

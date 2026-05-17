@@ -82,7 +82,10 @@ export default function SettingsTab() {
 
       {/* header */}
       <div className="topbar">
-        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.03em' }}>Me</div>
+        <div>
+          <div className="kicker">Account</div>
+          <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 2 }}>Me</div>
+        </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '6px 18px 110px' }}>

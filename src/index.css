@@ -161,18 +161,20 @@ body {
   margin: 26px 0 12px;
 }
 .section-head .h {
+  font-family: 'Lora', Georgia, serif;
   font-size: 19px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.02em;
   color: var(--ink);
 }
 .section-head .em { color: var(--accent-deep); }
 
 .hello-heading {
+  font-family: 'Lora', Georgia, serif;
   font-size: 30px;
   line-height: 1.1;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: 500;
+  letter-spacing: -0.025em;
   margin: 4px 0 0;
   color: var(--ink);
 }

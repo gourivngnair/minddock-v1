@@ -204,7 +204,10 @@ export default function PatternsTab() {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
 
       <div className="topbar" style={{ paddingBottom: 0 }}>
-        <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em' }}>Patterns</div>
+        <div>
+          <div className="kicker">Your insights</div>
+          <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 2 }}>Patterns</div>
+        </div>
       </div>
 
       {/* Level card */}
