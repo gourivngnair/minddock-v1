@@ -1278,19 +1278,9 @@ input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
 /* ── Desktop (1024px+): sidebar layout ── */
 @media (min-width: 1024px) {
 
-  /* Frame the app in the center of the viewport */
-  html {
-    background:
-      radial-gradient(ellipse 80% 60% at 15% 0%,   var(--accent-paper) 0%, transparent 55%),
-      radial-gradient(ellipse 70% 50% at 90% 100%,  var(--paper2)       0%, transparent 55%),
-      var(--paper3);
-  }
-  body { background: transparent; }
-
   #root {
-    max-width: 960px;
-    margin: 0 auto;
-    box-shadow: 0 0 0 1px var(--card-edge), var(--shadow-lg);
+    max-width: 100%;
+    margin: 0;
   }
 
   /* app-shell flips to row so sidebar and content sit side-by-side */
@@ -1403,6 +1393,5 @@ input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
 
 /* ── Large desktop (1400px+) ── */
 @media (min-width: 1400px) {
-  #root        { max-width: 1060px; }
   .bottom-dock { width: 260px; }
 }
