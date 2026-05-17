@@ -207,72 +207,54 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-/* ── Capacity Card (v2 tick-bar design) ── */
+/* ── Capacity Card ── */
 .capacity-card {
   background: var(--card);
   border: 1px solid var(--card-edge);
   border-radius: 16px;
-  padding: 18px 18px 16px;
+  padding: 16px 18px 18px;
   margin-bottom: 14px;
   box-shadow: var(--shadow-sm);
 }
 .capacity-label {
+  font-family: 'Lora', Georgia, serif;
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.02em;
   color: var(--ink);
   margin-top: 4px;
 }
-.capacity-label .em { color: var(--accent-deep); }
-.capacity-ticks {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
+.capacity-label .em { color: var(--accent-deep); font-style: italic; }
+
+/* Battery bar */
+.energy-bar {
+  display: flex;
+  gap: 5px;
+  height: 36px;
   margin: 14px 0 0;
 }
-.tick {
-  height: 54px;
-  border-radius: 10px;
-  background: var(--paper2);
-  border: 1px solid var(--line);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 7px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--ink-faint);
-  letter-spacing: 0.08em;
-  transition: all 0.2s var(--ease);
-  position: relative;
+.energy-bar button {
+  flex: 1;
+  border: none;
+  border-radius: 6px;
+  background: var(--paper3);
   cursor: pointer;
-  font-weight: 600;
+  transition: transform 0.15s var(--ease), background 0.2s, box-shadow 0.2s;
+  padding: 0;
 }
-.tick .tick-bar {
-  position: absolute;
-  left: 8px; right: 8px; bottom: 8px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--ink-faint);
-  opacity: 0.35;
-  transition: all 0.25s var(--ease);
+.energy-bar button:hover { transform: translateY(-2px); }
+.energy-bar button.bar-lit {
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+  box-shadow: 0 0 0 2px var(--accent-soft), 0 4px 10px rgba(74,99,167,0.22);
 }
-.tick.lit {
-  background: var(--accent-soft);
-  color: var(--accent-deep);
-  border-color: #cdd8ee;
+.energy-bar button.bar-current {
+  background: linear-gradient(180deg, var(--charcoal) 0%, #0d1626 100%);
+  box-shadow: 0 0 0 2px var(--paper3), 0 6px 14px rgba(23,32,51,0.35);
+  transform: translateY(-3px);
 }
-.tick.lit .tick-bar { background: var(--accent); opacity: 1; }
-.tick.current {
-  background: var(--charcoal);
-  color: var(--paper);
-  border-color: var(--charcoal);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px -6px rgba(23,32,51,0.45);
-}
-.tick.current .tick-bar { background: var(--accent); opacity: 1; height: 5px; }
+
 .capacity-explain {
-  margin-top: 14px;
+  margin-top: 12px;
   font-size: 13px;
   color: var(--ink-soft);
   line-height: 1.5;
