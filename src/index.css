@@ -465,77 +465,9 @@ body {
 .badge.indigo   { background: var(--indigo-soft);       color: var(--indigo-deep); }
 .badge.plum     { background: var(--plum-soft);         color: var(--plum-deep); }
 
-/* ── Bullet Journal page ── */
-.bj-page {
-  background-color: var(--card);
-  background-image: radial-gradient(circle, var(--line) 1px, transparent 1px);
-  background-size: 20px 20px;
-  border: 1px solid var(--card-edge);
-  border-radius: 14px;
-  overflow: hidden;
-  position: relative;
-}
-.bj-page::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 38px;
-  background: var(--paper2);
-  border-right: 1px solid var(--card-edge);
-  z-index: 0;
-}
-.bj-inner {
-  position: relative;
-  z-index: 1;
-  padding: 22px 22px 30px 54px;
-}
-.bj-page-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding-bottom: 9px;
-  border-bottom: 2px solid var(--ink);
-  margin-bottom: 4px;
-}
-.bj-eyebrow {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  color: var(--ink-muted);
-  font-weight: 500;
-}
-.bj-page-date {
-  font-family: 'Caveat', cursive;
-  font-size: 13px;
-  color: var(--ink-soft);
-  display: block;
-  text-align: right;
-}
-.bj-page-num {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  color: var(--ink-muted);
-  letter-spacing: 0.18em;
-  text-align: right;
-}
-.bj-title {
-  font-family: 'Caveat', cursive;
-  font-size: 44px;
-  font-weight: 700;
-  color: var(--ink);
-  line-height: 1;
-  letter-spacing: -0.5px;
-  margin: 12px 0 2px;
-}
-.bj-tagline {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  color: var(--ink-muted);
-  margin-bottom: 20px;
-}
+/* ── Bullet Journal layout ── */
+.bj-page { /* transparent wrapper — layout only */ }
+.bj-inner { padding: 0; }
 /* BJ tabs */
 .bj-tabs {
   display: flex;
@@ -581,8 +513,8 @@ body {
   border-top: 1px dashed var(--line);
 }
 .bj-section-action {
-  font-family: 'Caveat', cursive;
-  font-size: 14px;
+  font-size: 11.5px;
+  font-weight: 600;
   color: var(--ink-muted);
   cursor: pointer;
   border: none;
@@ -590,8 +522,9 @@ body {
   padding: 0;
   transition: color 0.15s;
   white-space: nowrap;
+  letter-spacing: 0.02em;
 }
-.bj-section-action:hover { color: var(--ink); }
+.bj-section-action:hover { color: var(--accent-deep); }
 /* BJ rows */
 .bj-row {
   display: flex;
@@ -602,30 +535,27 @@ body {
 }
 .bj-row:last-child { border-bottom: none; }
 .bj-bullet {
-  font-family: 'Caveat', cursive;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--ink-muted);
-  line-height: 1.25;
+  line-height: 1.5;
   width: 13px;
   text-align: center;
   flex-shrink: 0;
 }
 .bj-row-main {
   flex: 1;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10.5px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.55;
   color: var(--ink-soft);
-  letter-spacing: 0.01em;
 }
 .bj-row-time {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--ink-muted);
   flex-shrink: 0;
-  margin-top: 3px;
-  letter-spacing: 0.04em;
+  margin-top: 2px;
+  letter-spacing: 0.02em;
 }
 /* Two-column layout */
 .bj-cols {
@@ -664,8 +594,8 @@ body {
   text-transform: uppercase;
 }
 .bj-key-sym {
-  font-family: 'Caveat', cursive;
-  font-size: 15px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
   font-weight: 700;
   color: var(--ink-soft);
   line-height: 1;

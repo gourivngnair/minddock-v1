@@ -43,7 +43,7 @@ function ThoughtRow({ j, onDelete }: { j: JournalEntry; onDelete: () => void }) 
     <div className="bj-row" onClick={() => setExpanded((v) => !v)} style={{ cursor: 'pointer' }}>
       <span className="bj-bullet">~</span>
       <div className="bj-row-main">
-        <span style={{ fontFamily: "'Caveat', cursive", fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginRight: 6 }}>
+        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginRight: 6 }}>
           {m.emoji} {m.label}
         </span>
         {j.entryText && (
@@ -293,7 +293,7 @@ function HistoryDayCard({ dateStr, thoughts, energyItems, tasks, meals, sleep, a
             return (
               <div key={j.id} className="bj-row">
                 <span className="bj-bullet">~</span>
-                <span className="bj-row-main"><span style={{ fontFamily: "'Caveat', cursive", fontSize: 13, fontWeight: 700 }}>{m.emoji} {m.label}</span>{j.entryText && ` — ${j.entryText.slice(0, 50)}${j.entryText.length > 50 ? '…' : ''}`}</span>
+                <span className="bj-row-main"><span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{m.emoji} {m.label}</span>{j.entryText && ` — ${j.entryText.slice(0, 50)}${j.entryText.length > 50 ? '…' : ''}`}</span>
                 <span className="bj-row-time">{fmtTime(j.createdAt)}</span>
               </div>
             );
@@ -385,8 +385,6 @@ export default function JournalTab() {
     .forEach((a) => allDays.add(dateKey(a.deadline)));
   const historyDays = [...allDays].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
-  const pageNum = historyDays.length + 1;
-  const dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -407,20 +405,8 @@ export default function JournalTab() {
       </div>
 
       {/* ── Scrollable body ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 110px' }}>
-        <div className="bj-page">
-          <div className="bj-inner">
-
-            {/* Page header */}
-            <div className="bj-page-top">
-              <span className="bj-eyebrow">daily log</span>
-              <div style={{ textAlign: 'right' }}>
-                <span className="bj-page-date">{dateLabel}</span>
-                <span className="bj-page-num">P. {String(pageNum).padStart(3, '0')}</span>
-              </div>
-            </div>
-            <div className="bj-title">Journal</div>
-            <div className="bj-tagline">daily log · adhd coach</div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 18px 110px' }}>
+        <div>
 
             {/* Tabs */}
             <div className="bj-tabs">
@@ -574,9 +560,9 @@ export default function JournalTab() {
               <>
                 {historyDays.length === 0 ? (
                   <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                    <div style={{ fontFamily: "'Caveat', cursive", fontSize: 48, color: 'var(--ink-muted)', lineHeight: 1 }}>…</div>
-                    <div className="bj-eyebrow" style={{ marginTop: 10 }}>no past entries</div>
-                    <div style={{ fontFamily: "'Caveat', cursive", fontSize: 14, color: 'var(--ink-muted)', marginTop: 6 }}>start writing to fill your log.</div>
+                    <div style={{ fontSize: 32, color: 'var(--ink-faint)', lineHeight: 1 }}>…</div>
+                    <div className="kicker" style={{ marginTop: 10 }}>no past entries</div>
+                    <div style={{ fontSize: 13, color: 'var(--ink-muted)', marginTop: 6 }}>Start writing to fill your log.</div>
                   </div>
                 ) : (
                   historyDays.map((d) => (
@@ -595,7 +581,6 @@ export default function JournalTab() {
               </>
             )}
 
-          </div>
         </div>
       </div>
 
