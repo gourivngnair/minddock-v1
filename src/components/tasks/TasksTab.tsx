@@ -1,25 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
-import CommandCenter from './CommandCenter';
-import type { Task, Priority, EnergyLevel, BucketTag, LocationType, Recurrence } from '../../types';
+import AddTaskModal from './AddTaskModal';
+import EditTaskModal from './EditTaskModal';
+import ScaffoldEditor from './ScaffoldEditor';
+import type { Task, Priority, ScaffoldMaster } from '../../types';
 
 type TaskFilter = 'all' | 'high-priority' | 'easy' | 'due-soon' | 'waiting';
 type TaskSort   = 'newest' | 'priority' | 'energy' | 'bucket';
 
 const PRI_COLORS: Record<Priority,   string> = { 1: 'var(--ink-muted)', 2: 'var(--amber)', 3: 'var(--danger)' };
 const PRI_LABELS: Record<Priority,   string> = { 1: 'Low', 2: 'Medium', 3: 'High' };
-const E_ICONS:   Record<EnergyLevel, string> = { 1: '🟢', 2: '🟡', 3: '🔴' };
-const E_LABELS:  Record<EnergyLevel, string> = { 1: 'Easy', 2: 'Moderate', 3: 'Heavy' };
-
-const RECURRENCES: { value: Recurrence; label: string }[] = [
-  { value: 'once',          label: 'Once' },
-  { value: 'daily',         label: 'Daily' },
-  { value: 'alternate-days',label: 'Alternate days' },
-  { value: 'weekly',        label: 'Weekly' },
-  { value: 'biweekly',      label: 'Biweekly' },
-  { value: 'monthly',       label: 'Monthly' },
-  { value: 'quarterly',     label: 'Quarterly' },
-];
 
 const SORT_OPTIONS: { value: TaskSort; label: string }[] = [
   { value: 'newest',   label: 'Newest first' },
@@ -28,15 +18,6 @@ const SORT_OPTIONS: { value: TaskSort; label: string }[] = [
   { value: 'bucket',   label: 'By bucket' },
 ];
 
-const BUCKETS: { value: BucketTag; color: string }[] = [
-  { value: 'Work',    color: 'var(--slate-blue)' },
-  { value: 'Life',    color: 'var(--sage)' },
-  { value: 'Health',  color: 'var(--coral)' },
-  { value: 'Social',  color: 'var(--lavender)' },
-  { value: 'Admin',   color: 'var(--gold)' },
-  { value: 'Finance', color: 'var(--teal)' },
-  { value: 'Other',   color: 'var(--ink-muted)' },
-];
 
 function isDueSoon(task: Task): boolean {
   if (!task.deadline) return false;
@@ -44,198 +25,36 @@ function isDueSoon(task: Task): boolean {
   return h >= -24 && h <= 24;
 }
 
-/* ── Edit task sheet ── */
-function EditTaskSheet({ task, onClose, onSave }: {
-  task: Task;
-  onClose: () => void;
-  onSave: (updates: Partial<Task>) => void;
-}) {
-  const [title,      setTitle]      = useState(task.title);
-  const [desc,       setDesc]       = useState(task.description);
-  const [priority,   setPriority]   = useState<Priority>(task.priority);
-  const [energy,     setEnergy]     = useState<EnergyLevel>(task.energyRequired);
-  const [estTime,    setEstTime]    = useState(task.userEstimatedTime);
-  const [location,   setLocation]   = useState<LocationType>(task.location);
-  const [deadline,   setDeadline]   = useState(
-    task.deadline ? new Date(task.deadline).toISOString().slice(0, 16) : ''
-  );
-  const [bucket,     setBucket]     = useState<BucketTag>(task.bucketTag);
-  const [recurrence, setRecurrence] = useState<Recurrence>(task.recurrence);
-  const [waitingOn,  setWaitingOn]  = useState(task.waitingOn ?? '');
-
-  const divider = <div style={{ height: 1, background: 'var(--line-soft)', margin: '4px 0' }} />;
-
-  return (
-    <div className="modal-back fade-in" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal-sheet">
-        <div className="sheet-grip" />
-        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 18 }}>
-          <div className="serif" style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-0.02em' }}>Edit Task</div>
-        </div>
-
-        <div className="field" style={{ marginBottom: 14 }}>
-          <label>Title *</label>
-          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
-        </div>
-
-        <div className="field" style={{ marginBottom: 14 }}>
-          <label>Description <span style={{ color: 'var(--ink-muted)', fontWeight: 400 }}>(optional)</span></label>
-          <textarea className="input" style={{ minHeight: 64, resize: 'none' }} value={desc} onChange={(e) => setDesc(e.target.value)} />
-        </div>
-
-        {divider}
-
-        {/* Category */}
-        <div style={{ marginBottom: 14 }}>
-          <label className="label" style={{ display: 'block', marginBottom: 8 }}>Category</label>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {BUCKETS.map((b) => (
-              <button key={b.value} onClick={() => setBucket(b.value)} style={{
-                padding: '5px 12px', borderRadius: 99, cursor: 'pointer',
-                fontWeight: 600, fontSize: '0.78rem',
-                background: bucket === b.value ? `${b.color}18` : 'var(--paper2)',
-                border: `1.5px solid ${bucket === b.value ? b.color : 'var(--line)'}`,
-                color: bucket === b.value ? b.color : 'var(--ink-muted)',
-                transition: 'all 0.15s',
-              }}>{b.value}</button>
-            ))}
-          </div>
-        </div>
-
-        {divider}
-
-        <div className="row" style={{ gap: 12, marginBottom: 14 }}>
-          {/* Priority */}
-          <div className="field" style={{ flex: 1 }}>
-            <label>Priority</label>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {([1, 2, 3] as Priority[]).map((p) => (
-                <button key={p} onClick={() => setPriority(p)} style={{
-                  flex: 1, padding: '8px 0', borderRadius: 8, cursor: 'pointer',
-                  fontWeight: 700, fontSize: 13,
-                  background: priority === p ? PRI_COLORS[p] : 'var(--paper2)',
-                  border: `1.5px solid ${priority === p ? PRI_COLORS[p] : 'var(--line)'}`,
-                  color: priority === p ? '#fff' : 'var(--ink-muted)',
-                  transition: 'all 0.15s',
-                }}>{p === 1 ? '↓' : p === 2 ? '→' : '↑'}</button>
-              ))}
-            </div>
-            <div className="tiny muted" style={{ marginTop: 3, textAlign: 'center' }}>
-              {PRI_LABELS[priority]}
-            </div>
-          </div>
-
-          {/* Energy */}
-          <div className="field" style={{ flex: 1 }}>
-            <label>Energy</label>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {([
-                { v: 1 as EnergyLevel, color: 'var(--sage)' },
-                { v: 2 as EnergyLevel, color: 'var(--amber)' },
-                { v: 3 as EnergyLevel, color: 'var(--coral)' },
-              ]).map((e) => (
-                <button key={e.v} onClick={() => setEnergy(e.v)} style={{
-                  flex: 1, padding: '8px 0', borderRadius: 8, cursor: 'pointer',
-                  fontWeight: 700, fontSize: 12,
-                  background: energy === e.v ? e.color : 'var(--paper2)',
-                  border: `1.5px solid ${energy === e.v ? e.color : 'var(--line)'}`,
-                  color: energy === e.v ? '#fff' : 'var(--ink-muted)',
-                  transition: 'all 0.15s',
-                }}>{E_ICONS[e.v]}</button>
-              ))}
-            </div>
-            <div className="tiny muted" style={{ marginTop: 3, textAlign: 'center' }}>
-              {E_LABELS[energy]}
-            </div>
-          </div>
-        </div>
-
-        <div className="row" style={{ gap: 12, marginBottom: 14 }}>
-          <div className="field" style={{ flex: 1 }}>
-            <label>Est. time (min)</label>
-            <input className="input" type="number" min={1} value={estTime} onChange={(e) => setEstTime(parseInt(e.target.value) || 1)} />
-          </div>
-          <div className="field" style={{ flex: 1 }}>
-            <label>Location</label>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {(['home', 'away'] as LocationType[]).map((l) => (
-                <button key={l} onClick={() => setLocation(l)} style={{
-                  flex: 1, padding: '10px 0', borderRadius: 8, cursor: 'pointer',
-                  fontSize: 11, fontWeight: 600,
-                  background: location === l ? 'var(--slate-blue-soft)' : 'var(--paper2)',
-                  border: `1.5px solid ${location === l ? 'var(--slate-blue)' : 'var(--line)'}`,
-                  color: location === l ? 'var(--slate-blue-deep)' : 'var(--ink-muted)',
-                  transition: 'all 0.15s',
-                }}>
-                  {l === 'home' ? '🏠' : '🚗'}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="field" style={{ marginBottom: 14 }}>
-          <label>Recurrence</label>
-          <select className="input" value={recurrence} onChange={(e) => setRecurrence(e.target.value as Recurrence)}>
-            {RECURRENCES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-          </select>
-        </div>
-
-        {divider}
-
-        <div className="field" style={{ marginBottom: 14 }}>
-          <label>Deadline <span style={{ color: 'var(--ink-muted)', fontWeight: 400 }}>(optional)</span></label>
-          <input className="input" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-        </div>
-
-        <div className="field" style={{ marginBottom: 20 }}>
-          <label>Waiting on <span style={{ color: 'var(--ink-muted)', fontWeight: 400 }}>(optional)</span></label>
-          <input className="input" placeholder="Who or what is blocking this?" value={waitingOn} onChange={(e) => setWaitingOn(e.target.value)} />
-        </div>
-
-        <div className="row" style={{ gap: 10 }}>
-          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-          <button
-            className="btn btn-primary"
-            style={{ flex: 2 }}
-            disabled={!title.trim()}
-            onClick={() => {
-              onSave({
-                title, description: desc, priority, energyRequired: energy,
-                userEstimatedTime: estTime, location, recurrence, bucketTag: bucket,
-                deadline: deadline || undefined,
-                waitingOn: waitingOn || undefined,
-              });
-              onClose();
-            }}
-          >
-            Save changes
-          </button>
-        </div>
-
-        <button className="modal-close" onClick={onClose} aria-label="Close">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function TasksTab() {
-  const tasks        = useStore((s) => s.tasks);
-  const deleteTask   = useStore((s) => s.deleteTask);
-  const updateTask   = useStore((s) => s.updateTask);
-  const completeTask = useStore((s) => s.completeTask);
-  const startFocus   = useStore((s) => s.startFocus);
-  const setScreen    = useStore((s) => s.setScreen);
+  const tasks                = useStore((s) => s.tasks);
+  const deleteTask           = useStore((s) => s.deleteTask);
+  const updateTask           = useStore((s) => s.updateTask);
+  const completeTask         = useStore((s) => s.completeTask);
+  const startFocus           = useStore((s) => s.startFocus);
+  const setScreen            = useStore((s) => s.setScreen);
+  const scaffoldMasters      = useStore((s) => s.scaffoldMasters);
+  const addScaffoldMaster    = useStore((s) => s.addScaffoldMaster);
+  const updateScaffoldMaster = useStore((s) => s.updateScaffoldMaster);
+  const deleteScaffoldMaster = useStore((s) => s.deleteScaffoldMaster);
+  const startScaffold        = useStore((s) => s.startScaffold);
 
+  const scaffoldDeepLink    = useStore((s) => s.scaffoldDeepLink);
+  const clearScaffoldDeepLink = useStore((s) => s.clearScaffoldDeepLink);
+
+  const [view,       setView]       = useState<'tasks' | 'scaffolds'>('tasks');
+
+  useEffect(() => {
+    if (scaffoldDeepLink) { setView('scaffolds'); clearScaffoldDeepLink(); }
+  }, [scaffoldDeepLink, clearScaffoldDeepLink]);
   const [filter,     setFilter]     = useState<TaskFilter>('all');
   const [sort,       setSort]       = useState<TaskSort>('newest');
   const [showAdd,    setShowAdd]    = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editing,    setEditing]    = useState<Task | null>(null);
+  const [scaffoldExpandedId, setScaffoldExpandedId] = useState<string | null>(null);
+  const [editingScaffold,    setEditingScaffold]    = useState<ScaffoldMaster | null>(null);
+  const [showNewScaffold,    setShowNewScaffold]    = useState(false);
 
   const pending = tasks.filter((t) => !t.completed);
   const done    = tasks.filter((t) => t.completed);
@@ -309,7 +128,20 @@ export default function TasksTab() {
           <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === task.id ? null : task.id)}>
             {/* Badges */}
             <div className="row" style={{ gap: 5, marginBottom: 3, flexWrap: 'wrap' }}>
-              {task.isScaffolded  && <span className="badge sage">scaffold</span>}
+              {task.scaffoldMasterId && (() => {
+                const m = scaffoldMasters.find((x) => x.id === task.scaffoldMasterId);
+                if (!m) return null;
+                return (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '1px 8px', borderRadius: 99,
+                    background: `${m.color}18`, border: `1px solid ${m.color}40`,
+                    fontSize: 11, fontWeight: 700, color: m.color,
+                  }}>
+                    {m.icon} {m.name} · {(task.scaffoldStepIdx ?? 0) + 1}/{m.steps.length}
+                  </span>
+                );
+              })()}
               {task.energyRequired === 1 && <span className="badge slate">easy</span>}
               {task.waitingOn     && <span className="badge gold">⏳ {task.waitingOn}</span>}
               {urgent && !task.completed && <span className="badge amber">⏰ due soon</span>}
@@ -404,20 +236,39 @@ export default function TasksTab() {
 
       <div className="topbar">
         <div>
-          <div className="kicker">All tasks</div>
-          <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 2 }}>Tasks</div>
-          <div className="tiny muted" style={{ marginTop: 2 }}>{pending.length} pending · {done.length} done</div>
+          <div className="kicker">{view === 'tasks' ? 'All tasks' : 'Scaffold templates'}</div>
+          <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 2 }}>
+            {view === 'tasks' ? 'Tasks' : 'Scaffolds'}
+          </div>
+          <div className="tiny muted" style={{ marginTop: 2 }}>
+            {view === 'tasks' ? `${pending.length} pending · ${done.length} done` : `${scaffoldMasters.length} template${scaffoldMasters.length !== 1 ? 's' : ''}`}
+          </div>
         </div>
         <button
-          onClick={() => setShowAdd(true)}
+          onClick={() => view === 'tasks' ? setShowAdd(true) : setShowNewScaffold(true)}
           style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: 'var(--charcoal)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Add
+          {view === 'tasks' ? 'Add' : 'New'}
         </button>
       </div>
 
-      <div className="filter-bar">
+      {/* View switcher */}
+      <div style={{ display: 'flex', gap: 6, padding: '0 18px 10px', flexShrink: 0 }}>
+        {(['tasks', 'scaffolds'] as const).map((v) => (
+          <button key={v} onClick={() => setView(v)} style={{
+            padding: '6px 14px', borderRadius: 99, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            border: `1.5px solid ${view === v ? 'var(--slate-blue)' : 'var(--line)'}`,
+            background: view === v ? 'var(--slate-blue-soft)' : 'var(--paper2)',
+            color: view === v ? 'var(--slate-blue-deep)' : 'var(--ink-muted)',
+            transition: 'all 0.12s',
+          }}>
+            {v === 'tasks' ? '✦ Tasks' : '🗂 Scaffolds'}
+          </button>
+        ))}
+      </div>
+
+      <div className="filter-bar" style={{ display: view === 'tasks' ? undefined : 'none' }}>
         {FILTERS.map((f) => (
           <button key={f.value} className={`chip${filter === f.value ? ' active' : ''}`} onClick={() => setFilter(f.value)}>
             {f.icon && <span>{f.icon}</span>}
@@ -427,7 +278,7 @@ export default function TasksTab() {
         ))}
       </div>
 
-      <div className="sort-row">
+      <div className="sort-row" style={{ display: view === 'tasks' ? undefined : 'none' }}>
         <span className="tiny muted" style={{ flexShrink: 0 }}>Sort:</span>
         {SORT_OPTIONS.map((s) => (
           <button key={s.value} className={`sort-pill${sort === s.value ? ' active' : ''}`} onClick={() => setSort(s.value)}>
@@ -436,7 +287,7 @@ export default function TasksTab() {
         ))}
       </div>
 
-      {filter !== 'all' && (
+      {view === 'tasks' && filter !== 'all' && (
         <div className="filter-summary">
           <span>Showing <strong>{visible.length}</strong> of <strong>{pending.length}</strong> tasks</span>
           <button className="filter-summary-clear" onClick={() => setFilter('all')}>Clear ×</button>
@@ -444,6 +295,127 @@ export default function TasksTab() {
       )}
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 18px 110px' }}>
+
+      {/* ══ SCAFFOLDS VIEW ══ */}
+      {view === 'scaffolds' && (
+        <>
+          {scaffoldMasters.length === 0 && (
+            <div className="empty-state">
+              <div style={{ fontSize: 32, marginBottom: 8 }}>🗂</div>
+              <div className="serif" style={{ fontSize: 17 }}>No scaffolds yet.</div>
+              <div className="tiny soft" style={{ marginTop: 4 }}>Create a scaffold to break a multi-step routine into sequential tasks.</div>
+            </div>
+          )}
+          {scaffoldMasters.map((master) => {
+            const activeTasks   = tasks.filter((t) => t.scaffoldMasterId === master.id && !t.completed);
+            const activeStep    = activeTasks.length > 0 ? activeTasks[0] : null;
+            const activeStepIdx = activeStep?.scaffoldStepIdx ?? -1;
+            const isExpanded    = scaffoldExpandedId === master.id;
+
+            return (
+              <div key={master.id} style={{
+                background: '#fff', border: `1.5px solid ${master.color}30`,
+                borderRadius: 14, marginBottom: 10, overflow: 'hidden',
+              }}>
+                {/* Card header */}
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px',
+                    background: `${master.color}0a`, cursor: 'pointer',
+                    borderBottom: isExpanded ? `1px solid ${master.color}20` : 'none',
+                  }}
+                  onClick={() => setScaffoldExpandedId(isExpanded ? null : master.id)}
+                >
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10,
+                    background: `${master.color}20`, fontSize: 20,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>{master.icon}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--charcoal)' }}>{master.name}</div>
+                    <div className="tiny muted" style={{ marginTop: 1 }}>
+                      {master.steps.length} steps · {master.steps.reduce((a, s) => a + s.estimatedMinutes, 0)}m total
+                    </div>
+                  </div>
+                  {activeStep && (
+                    <span style={{
+                      padding: '3px 9px', borderRadius: 99, fontSize: 11, fontWeight: 700,
+                      background: `${master.color}20`, color: master.color, flexShrink: 0,
+                    }}>Step {activeStepIdx + 1}/{master.steps.length}</span>
+                  )}
+                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                    <button onClick={(e) => { e.stopPropagation(); setEditingScaffold(master); }} style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--line)', background: 'var(--paper2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-soft)' }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete "${master.name}"?`)) deleteScaffoldMaster(master.id); }} style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-muted)' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Expanded step list */}
+                {isExpanded && (
+                  <div style={{ padding: '10px 14px 14px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 14 }}>
+                      {master.steps.map((step, i) => {
+                        const isCurrent = i === activeStepIdx;
+                        const isDone    = activeStepIdx > i;
+                        return (
+                          <div key={step.id} style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '7px 10px', borderRadius: 9,
+                            background: isCurrent ? `${master.color}10` : 'var(--paper2)',
+                            border: `1px solid ${isCurrent ? master.color + '40' : 'var(--line)'}`,
+                            opacity: isDone ? 0.45 : 1,
+                          }}>
+                            <div style={{
+                              width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                              background: isCurrent ? master.color : isDone ? 'var(--sage)' : 'var(--paper3)',
+                              border: `2px solid ${isCurrent ? master.color : isDone ? 'var(--sage)' : 'var(--line)'}`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              {isDone
+                                ? <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                                : <span style={{ fontSize: 9, fontWeight: 700, color: isCurrent ? '#fff' : 'var(--ink-muted)' }}>{i + 1}</span>
+                              }
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: isCurrent ? 600 : 400, color: 'var(--charcoal)', textDecoration: isDone ? 'line-through' : 'none' }}>
+                                {step.title}
+                              </div>
+                            </div>
+                            <span className="tiny muted">{step.estimatedMinutes}m</span>
+                            {isCurrent && <span style={{ fontSize: 10, fontWeight: 700, color: master.color }}>← now</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Start / in-progress button */}
+                    {activeStep ? (
+                      <button
+                        onClick={() => { setView('tasks'); }}
+                        style={{ width: '100%', padding: '10px', borderRadius: 10, border: `1.5px solid ${master.color}`, background: `${master.color}10`, color: master.color, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
+                      >
+                        ▶ Step {activeStepIdx + 1} in progress — view task →
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => { startScaffold(master.id); setView('tasks'); }}
+                        style={{ width: '100%', padding: '10px', borderRadius: 10, border: 'none', background: master.color, color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
+                      >
+                        ▶ Start scaffold
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </>
+      )}
+      {/* ══ TASKS VIEW ══ */}
+      {view === 'tasks' && <>
         {pending.length === 0 && done.length === 0 && (
           <div className="empty-state">
             <div className="serif" style={{ fontSize: 17 }}>No tasks yet.</div>
@@ -472,10 +444,20 @@ export default function TasksTab() {
             {done.map((t) => <TaskRow key={t.id} task={t} />)}
           </div>
         )}
+      </>}
+
       </div>
 
-      {showAdd  && <CommandCenter onClose={() => setShowAdd(false)} />}
-      {editing  && <EditTaskSheet task={editing} onClose={() => setEditing(null)} onSave={(u) => updateTask(editing.id, u)} />}
+      {showAdd         && <AddTaskModal onClose={() => setShowAdd(false)} />}
+      {editing         && <EditTaskModal task={editing} onClose={() => setEditing(null)} onSave={(u) => updateTask(editing.id, u)} />}
+      {showNewScaffold && <ScaffoldEditor onClose={() => setShowNewScaffold(false)} onSave={addScaffoldMaster} />}
+      {editingScaffold && (
+        <ScaffoldEditor
+          master={editingScaffold}
+          onClose={() => setEditingScaffold(null)}
+          onSave={(data) => updateScaffoldMaster(editingScaffold.id, data)}
+        />
+      )}
     </div>
   );
 }

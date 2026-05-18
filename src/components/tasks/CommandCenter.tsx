@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
+import DateTimePicker from '../shared/DateTimePicker';
 import type { Priority, EnergyLevel, BucketTag } from '../../types';
 
 interface Props { onClose: () => void; }
@@ -134,7 +135,7 @@ export default function CommandCenter({ onClose }: Props) {
                   </button>
                 </div>
                 {showDeadline
-                  ? <input className="input" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} autoFocus />
+                  ? <DateTimePicker value={deadline} onChange={setDeadline} timeOptional />
                   : <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', paddingTop: 4 }}>Optional — adds urgency scoring and shows on the calendar.</div>
                 }
               </div>
@@ -278,8 +279,7 @@ export default function CommandCenter({ onClose }: Props) {
                 <input className="input" placeholder="e.g. Therapy, 2:30 PM" value={aptTitle} onChange={(e) => setAptTitle(e.target.value)} autoFocus />
               </div>
               <div className="field">
-                <label>Date &amp; time</label>
-                <input className="input" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+                <DateTimePicker value={deadline} onChange={setDeadline} />
               </div>
               <div className="field">
                 <label>Where</label>

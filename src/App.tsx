@@ -15,20 +15,31 @@ import JournalTab from './components/journal/JournalTab';
 import SettingsTab from './components/settings/SettingsTab';
 import BottomNav from './components/layout/BottomNav';
 import CommandCenter from './components/tasks/CommandCenter';
+import BrainDumpSidebar from './components/tasks/BrainDumpSidebar';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 
 const TAB_SCREENS = ['tasks', 'appointments', 'calendar', 'patterns', 'journal', 'settings'] as const;
 
 export default function App() {
   const { user: authUser, loading: authLoading } = useAuth();
-  const hydrateFromSupabase = useStore((s) => s.hydrateFromSupabase);
-  const clearSession        = useStore((s) => s.clearSession);
-  const screen              = useStore((s) => s.screen);
+  const hydrateFromSupabase     = useStore((s) => s.hydrateFromSupabase);
+  const clearSession            = useStore((s) => s.clearSession);
+  const checkScheduledScaffolds = useStore((s) => s.checkScheduledScaffolds);
+  const screen                  = useStore((s) => s.screen);
   const dataLoading         = useStore((s) => s.dataLoading);
   const hasLocalUser        = useStore((s) => s.user !== null);
-  const [showDump, setShowDump] = useState(false);
+  const [showDump, setShowDump]           = useState(false);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
 
   const hydratedFor = useRef<string | null>(null);
+
+  // Re-check scheduled scaffolds when user returns to the tab (handles overnight cases)
+  useEffect(() => {
+    const handler = () => { if (document.visibilityState === 'visible') checkScheduledScaffolds(); };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, [checkScheduledScaffolds]);
 
   useEffect(() => {
     // Wait until Supabase has confirmed the session before acting.
@@ -78,7 +89,11 @@ export default function App() {
 
             {(screen === 'today' || isTab) && (
               <>
-                <BottomNav onOpenDump={() => setShowDump(true)} />
+                <BottomNav
+                  onOpenDump={() => setShowDump(true)}
+                  collapsed={leftCollapsed}
+                  onToggle={() => setLeftCollapsed((v) => !v)}
+                />
                 <div className="app-main">
                   {screen === 'today'        && <TodayView />}
                   {screen === 'tasks'        && <TasksTab />}
@@ -88,6 +103,10 @@ export default function App() {
                   {screen === 'journal'      && <JournalTab />}
                   {screen === 'settings'     && <SettingsTab />}
                 </div>
+                <BrainDumpSidebar
+                  collapsed={rightCollapsed}
+                  onToggle={() => setRightCollapsed((v) => !v)}
+                />
                 {showDump && <CommandCenter onClose={() => setShowDump(false)} />}
               </>
             )}

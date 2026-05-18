@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
+import DateTimePicker from '../shared/DateTimePicker';
 import type { Priority, EnergyLevel, LocationType, BucketTag, Recurrence } from '../../types';
 
-interface Props { onClose: () => void; }
+interface Props { onClose: () => void; initialTitle?: string; onSave?: () => void; }
 
 const BUCKETS: { value: BucketTag; color: string }[] = [
   { value: 'Work',    color: 'var(--slate-blue)' },
@@ -24,10 +25,10 @@ const RECURRENCES: { value: Recurrence; label: string }[] = [
   { value: 'quarterly',     label: 'Quarterly' },
 ];
 
-export default function AddTaskModal({ onClose }: Props) {
+export default function AddTaskModal({ onClose, initialTitle = '', onSave }: Props) {
   const addTask = useStore((s) => s.addTask);
   const [form, setForm] = useState({
-    title: '',
+    title: initialTitle,
     description: '',
     priority: 2 as Priority,
     energyRequired: 2 as EnergyLevel,
@@ -38,6 +39,7 @@ export default function AddTaskModal({ onClose }: Props) {
     bucketTag: 'Life' as BucketTag,
     recurrence: 'once' as Recurrence,
   });
+  const [showWaiting, setShowWaiting] = useState(false);
 
   const handleSubmit = () => {
     if (!form.title.trim()) return;
@@ -49,6 +51,7 @@ export default function AddTaskModal({ onClose }: Props) {
       completed: false,
       completedViaFocus: false,
     });
+    onSave?.();
     onClose();
   };
 
@@ -227,23 +230,33 @@ export default function AddTaskModal({ onClose }: Props) {
         {/* Deadline */}
         <div className="field" style={{ marginBottom: 14 }}>
           <label>Deadline <span style={{ color: 'var(--ink-muted)', fontWeight: 400 }}>(optional)</span></label>
-          <input
-            className="input"
-            type="datetime-local"
+          <DateTimePicker
             value={form.deadline}
-            onChange={(e) => patch('deadline', e.target.value)}
+            onChange={(v) => patch('deadline', v)}
+            timeOptional
           />
         </div>
 
         {/* Waiting on */}
         <div className="field" style={{ marginBottom: 20 }}>
-          <label>Waiting on <span style={{ color: 'var(--ink-muted)', fontWeight: 400 }}>(optional)</span></label>
-          <input
-            className="input"
-            placeholder="Who or what is blocking this?"
-            value={form.waitingOn}
-            onChange={(e) => patch('waitingOn', e.target.value)}
-          />
+          <div className="row" style={{ justifyContent: 'space-between', marginBottom: showWaiting ? 6 : 0 }}>
+            <label style={{ marginBottom: 0 }}>Waiting on</label>
+            <button
+              onClick={() => { setShowWaiting(v => !v); if (showWaiting) patch('waitingOn', ''); }}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600, color: showWaiting ? 'var(--danger)' : 'var(--slate-blue-deep)', padding: 0 }}
+            >
+              {showWaiting ? 'Remove' : '+ Blocked by someone'}
+            </button>
+          </div>
+          {showWaiting && (
+            <input
+              className="input"
+              placeholder="Who or what is blocking this?"
+              value={form.waitingOn}
+              onChange={(e) => patch('waitingOn', e.target.value)}
+              autoFocus
+            />
+          )}
         </div>
 
         <div className="row" style={{ gap: 10 }}>

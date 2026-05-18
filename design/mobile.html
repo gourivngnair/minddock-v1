@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindDock — Mobile Screens</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:        #eef2f6;
+    --paper2:       #e3e9f0;
+    --paper3:       #dbe2ec;
+    --charcoal:     #172033;
+    --ink:          #172033;
+    --ink-soft:     #4d586b;
+    --ink-muted:    #7d8798;
+    --ink-faint:    #aab4c3;
+    --line:         #e4eaf2;
+    --line-soft:    #eaf0f6;
+    --card:         #ffffff;
+    --card-edge:    #e0e6ee;
+    --accent:       #6a82c4;
+    --accent-deep:  #4a63a7;
+    --accent-soft:  #e7edf7;
+    --accent-paper: #f1f4fb;
+    --sage:         #7d9d8a;
+    --sage-deep:    #5e7d6c;
+    --sage-soft:    #e5ede8;
+    --gold:         #a88a4f;
+    --gold-soft:    #f0e9d8;
+    --ochre-deep:   #856a36;
+    --danger:       #b83c30;
+    --danger-soft:  #fdecea;
+    --terra:        #b85c38;
+    --terra-soft:   #f5ece6;
+    --teal:         #3a8a90;
+    --teal-soft:    #e2f2f4;
+    --rose:         #a84068;
+    --rose-soft:    #fdeef4;
+    --amber:        #b07828;
+    --amber-soft:   #f5ecd8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #d0d8e8;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .canvas {
+    display: flex;
+    gap: 40px;
+    padding: 60px;
+    flex-wrap: nowrap;
+    width: max-content;
+  }
+
+  .frame {
+    width: 390px;
+    height: 844px;
+    overflow: hidden;
+    position: relative;
+    border-radius: 40px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.30);
+    background: var(--paper);
+    flex-shrink: 0;
+  }
+
+  .frame-label {
+    position: absolute;
+    top: -28px;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(23,32,51,0.45);
+    font-weight: 500;
+  }
+
+  /* ─── Shared utilities ─── */
+  .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-muted);
+  }
+
+  .lora { font-family: 'Lora', serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-edge);
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(23,32,51,0.06);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 2px 8px;
+    letter-spacing: 0.04em;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    white-space: nowrap;
+    background: var(--card);
+  }
+
+  .chip.active {
+    background: var(--charcoal);
+    color: white;
+    border-color: var(--charcoal);
+  }
+
+  /* ─── Topbar ─── */
+  .topbar {
+    padding: 18px 18px 10px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
+  /* ─── Screen scroll ─── */
+  .screen-scroll {
+    padding: 0 18px;
+    overflow-y: auto;
+    height: calc(844px - 64px - 80px);
+  }
+
+  .screen-scroll::-webkit-scrollbar { display: none; }
+
+  /* ─── Energy bar ─── */
+  .energy-bar {
+    display: flex;
+    gap: 5px;
+    height: 36px;
+    margin-top: 12px;
+  }
+
+  .energy-seg {
+    flex: 1;
+    border-radius: 6px;
+    background: var(--paper3);
+    position: relative;
+    transition: transform 0.15s;
+  }
+
+  .energy-seg.lit {
+    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    box-shadow: 0 0 8px rgba(106,130,196,0.35);
+  }
+
+  .energy-seg.current {
+    background: linear-gradient(180deg, var(--charcoal), #0d1626);
+    box-shadow: 0 4px 12px rgba(23,32,51,0.4);
+    transform: translateY(-3px);
+  }
+
+  /* ─── Task card ─── */
+  .task-card {
+    background: var(--card);
+    border: 1px solid var(--card-edge);
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(23,32,51,0.06);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    margin-bottom: 8px;
+  }
+
+  .task-checkbox {
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    border: 2px solid var(--ink-muted);
+    flex-shrink: 0;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .task-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .task-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  /* ─── Floating dock ─── */
+  .dock {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    height: 64px;
+    border-radius: 999px;
+    background: rgba(238,242,246,0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 12px 32px rgba(23,32,51,0.20);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 8px;
+    border: 1px solid rgba(228,234,242,0.8);
+  }
+
+  .dock-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-faint);
+    cursor: pointer;
+  }
+
+  .dock-btn.active { color: var(--accent-deep); }
+
+  .dock-fab {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--charcoal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(23,32,51,0.4);
+    flex-shrink: 0;
+  }
+
+  /* ─── Section head ─── */
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin: 18px 0 10px;
+  }
+
+  .section-head h2 {
+    font-family: 'Lora', serif;
+    font-size: 19px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+
+  .section-head h2 em {
+    color: var(--accent-deep);
+    font-style: italic;
+  }
+
+  /* ─── Toggle switch ─── */
+  .toggle {
+    width: 44px;
+    height: 26px;
+    border-radius: 999px;
+    background: var(--paper3);
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .toggle-knob {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  .toggle.on { background: var(--accent); }
+  .toggle.on .toggle-knob { left: 21px; }
+
+  /* ─── Input ─── */
+  .input-field {
+    background: white;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    width: 100%;
+  }
+
+  /* ─── Btn primary ─── */
+  .btn-primary {
+    background: var(--charcoal);
+    color: white;
+    border-radius: 10px;
+    padding: 11px 18px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ─── Divider ─── */
+  .divider {
+    height: 1px;
+    background: var(--line);
+    margin: 14px 0;
+  }
+
+  /* ─── Calendar ─── */
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border-left: 1px solid var(--line);
+    border-top: 1px solid var(--line);
+  }
+
+  .cal-cell {
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    min-height: 60px;
+    padding: 4px 5px;
+    background: white;
+    position: relative;
+  }
+
+  .cal-day-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .cal-day-num.today {
+    background: var(--charcoal);
+    color: white;
+  }
+
+  .cal-day-num.selected {
+    background: var(--accent-deep);
+    color: white;
+  }
+
+  .cal-cell.selected-cell {
+    background: var(--accent-paper);
+  }
+
+  .event-pill {
+    display: block;
+    font-size: 9px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    border-radius: 3px;
+    padding: 1px 4px;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ─── BJ signifier styles ─── */
+  .bj-section {
+    margin-bottom: 14px;
+  }
+
+  .bj-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .bj-sig {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+  }
+
+  .bj-line {
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+    border: none;
+  }
+
+  .bj-plus {
+    font-size: 14px;
+    color: var(--ink-faint);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Scrollable content in screen */
+  .content-scroll {
+    height: 844px;
+    overflow-y: auto;
+    padding-bottom: 90px;
+  }
+  .content-scroll::-webkit-scrollbar { display: none; }
+
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  <!-- ══════════════════════════════════════════════════════════
+       SCREEN 1: TODAY
+  ══════════════════════════════════════════════════════════ -->
+  <div style="position:relative; flex-shrink:0;">
+    <div class="frame-label">01 — Today</div>
+    <div class="frame">
+      <div class="content-scroll">
+
+        <!-- Topbar -->
+        <div class="topbar">
+          <div>
+            <div class="kicker">Saturday · May 18</div>
+            <div style="font-family:'Lora',serif;font-size:30px;font-weight:500;letter-spacing:-0.025em;color:var(--ink);line-height:1.15;margin-top:2px;">Hi, <em style="color:var(--accent-deep);font-style:italic;">Alex.</em></div>
+          </div>
+          <div class="card" style="padding:7px 12px;display:flex;align-items:center;gap:5px;border-radius:12px;">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1L7.9 4.8H12L8.8 7.2L10 11L6.5 8.8L3 11L4.2 7.2L1 4.8H5.1L6.5 1Z" fill="#b07828"/></svg>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--ink);">Lv 4</span>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div style="padding:0 18px;">
+
+          <!-- Energy card -->
+          <div class="card" style="padding:14px 16px;margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span class="kicker">Capacity · Now</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--ink-soft);">3/5</span>
+            </div>
+            <div style="font-family:'Lora',serif;font-size:20px;font-weight:500;font-style:italic;color:var(--ink);margin-top:6px;letter-spacing:-0.02em;">Feeling steady.</div>
+            <div class="energy-bar">
+              <div class="energy-seg lit"></div>
+              <div class="energy-seg lit"></div>
+              <div class="energy-seg current"></div>
+              <div class="energy-seg"></div>
+              <div class="energy-seg"></div>
+            </div>
+          </div>
+
+          <!-- Heads-up strip -->
+          <div style="background:var(--accent-paper);border:1.5px solid var(--accent-soft);border-radius:14px;padding:13px 14px;display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <div style="flex-shrink:0;">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:600;color:var(--accent-deep);line-height:1;">24</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent);font-weight:500;">%</span>
+            </div>
+            <div style="flex:1;">
+              <div class="kicker" style="color:var(--accent-deep);margin-bottom:3px;">Heads Up</div>
+              <div style="font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink-soft);line-height:1.4;">Things take you about that much longer than you guess.</div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4L10 8L6 12" stroke="#4a63a7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <!-- 2-col summary chips -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+            <div class="card" style="padding:12px 13px;">
+              <div style="width:30px;height:30px;background:var(--gold-soft);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1" y="2" width="13" height="12" rx="2" stroke="#a88a4f" stroke-width="1.5"/><path d="M5 1V3M10 1V3M1 6H14" stroke="#a88a4f" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:1px;">Appointments</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-muted);">this week →</div>
+            </div>
+            <div class="card" style="padding:12px 13px;">
+              <div style="width:30px;height:30px;background:var(--gold-soft);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="#a88a4f" stroke-width="1.5"/><path d="M7.5 4.5V7.5L9.5 9" stroke="#a88a4f" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:1px;">1 on others</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-muted);">not your court →</div>
+            </div>
+          </div>
+
+          <!-- Stuck toggle -->
+          <div class="card" style="padding:13px 14px;display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <div class="toggle">
+              <div class="toggle-knob"></div>
+            </div>
+            <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink-soft);">I feel stuck right now</span>
+          </div>
+
+          <!-- Section head: For today -->
+          <div class="section-head">
+            <h2>For <em>today.</em></h2>
+            <span class="kicker">3 items</span>
+          </div>
+
+          <!-- Task 1: urgent, admin -->
+          <div class="task-card">
+            <div class="task-checkbox" style="border-color:var(--danger);"></div>
+            <div class="task-dot" style="background:var(--gold);"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span class="badge" style="background:var(--danger-soft);color:var(--danger);">urgent</span>
+              </div>
+              <div style="font-family:'Inter',sans-serif;font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.3;margin-bottom:4px;">Reply to landlord about the leak</div>
+              <div class="task-meta">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#7d8798" stroke-width="1.2"/><path d="M5.5 3V5.5L7 6.5" stroke="#7d8798" stroke-width="1.2" stroke-linecap="round"/></svg>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);">10m → ~15m · admin</span>
+              </div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4L10 8L6 12" stroke="#aab4c3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <!-- Task 2: easy, life -->
+          <div class="task-card">
+            <div class="task-checkbox"></div>
+            <div class="task-dot" style="background:var(--sage);"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span class="badge" style="background:var(--sage-soft);color:var(--sage-deep);">easy</span>
+              </div>
+              <div style="font-family:'Inter',sans-serif;font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.3;margin-bottom:4px;">Drop laundry in the washer</div>
+              <div class="task-meta">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#7d8798" stroke-width="1.2"/><path d="M5.5 3V5.5L7 6.5" stroke="#7d8798" stroke-width="1.2" stroke-linecap="round"/></svg>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);">5m → ~7m · life</span>
+              </div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4L10 8L6 12" stroke="#aab4c3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <!-- Task 3: dimmed, work -->
+          <div class="task-card" style="opacity:0.45;">
+            <div class="task-checkbox"></div>
+            <div class="task-dot" style="background:var(--accent);"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-family:'Inter',sans-serif;font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.3;margin-bottom:4px;">Draft Q3 retrospective doc</div>
+              <div class="task-meta">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#7d8798" stroke-width="1.2"/><path d="M5.5 3V5.5L7 6.5" stroke="#7d8798" stroke-width="1.2" stroke-linecap="round"/></svg>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);">60m → ~90m · work</span>
+              </div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4L10 8L6 12" stroke="#aab4c3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <!-- Done section -->
+          <div class="section-head" style="margin-top:20px;">
+            <h2>Done <em>today.</em></h2>
+            <span class="kicker">2</span>
+          </div>
+
+          <!-- Done rows -->
+          <div class="task-card" style="opacity:0.65;">
+            <div style="width:22px;height:22px;border-radius:7px;background:var(--sage-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#5e7d6c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="task-dot" style="background:var(--accent);"></div>
+            <div style="flex:1;">
+              <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink-muted);text-decoration:line-through;line-height:1.3;">Check Slack messages</div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-faint);">work · 5m</span>
+            </div>
+          </div>
+
+          <div class="task-card" style="opacity:0.65;margin-bottom:6px;">
+            <div style="width:22px;height:22px;border-radius:7px;background:var(--sage-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#5e7d6c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="task-dot" style="background:var(--sage);"></div>
+            <div style="flex:1;">
+              <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink-muted);text-decoration:line-through;line-height:1.3;">Take morning meds</div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-faint);">life · 2m</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Floating Dock -->
+      <div class="dock">
+        <div class="dock-btn active">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="5.5" height="5.5" rx="1.5" fill="#4a63a7"/><rect x="11.5" y="3" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="3" y="11.5" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/></svg>
+        </div>
+        <div class="dock-btn">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 6H16M4 10H16M4 14H10" stroke="#aab4c3" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+        <div class="dock-fab">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4V16M4 10H16" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <div class="dock-btn">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="2" width="14" height="16" rx="2" stroke="#aab4c3" stroke-width="1.5"/><path d="M7 7H13M7 10H11M7 13H9" stroke="#aab4c3" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </div>
+        <div class="dock-btn">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 15L6 9L9.5 13L13 7L17 15H3Z" stroke="#aab4c3" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="dock-btn">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="8" r="3.5" stroke="#aab4c3" stroke-width="1.5"/><path d="M3.5 17C3.5 14 6.5 12 10 12C13.5 12 16.5 14 16.5 17" stroke="#aab4c3" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SCREEN 2: TASKS
+  ══════════════════════════════════════════════════════════ -->
+  <div style="position:relative; flex-shrink:0;">
+    <div class="frame-label">02 — Tasks</div>
+    <div class="frame">
+      <div class="content-scroll">
+        <!-- Topbar -->
+        <div class="topbar">
+          <div>
+            <div class="kicker">All Tasks</div>
+            <div style="font-family:'Lora',serif;font-size:26px;font-weight:500;letter-spacing:-0.025em;color:var(--ink);margin-top:2px;">Tasks</div>
+          </div>
+          <button class="btn-primary" style="border-radius:999px;padding:8px 14px;">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 2V11M2 6.5H11" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Add
+          </button>
+        </div>
+
+        <div style="padding:0 18px;">
+
+          <!-- Filter chips -->
+          <div style="display:flex;gap:7px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;">
+            <div style="display:inline-flex;align-items:center;border-radius:999px;padding:7px 14px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:white;background:var(--charcoal);white-space:nowrap;flex-shrink:0;">All</div>
+            <div class="chip">High Priority</div>
+            <div class="chip">Easy</div>
+            <div class="chip">Due Soon</div>
+            <div class="chip">Waiting</div>
+          </div>
+
+          <!-- Sort row -->
+          <div style="display:flex;gap:14px;margin-bottom:14px;padding-left:2px;">
+            <span style="font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;color:var(--accent-deep);border-bottom:1.5px solid var(--accent-deep);padding-bottom:2px;">Newest first</span>
+            <span style="font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink-muted);">Priority</span>
+            <span style="font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink-muted);">Energy</span>
+            <span style="font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink-muted);">Bucket</span>
+          </div>
+
+          <!-- Task rows -->
+          <!-- Task A -->
+          <div class="task-card" style="margin-bottom:7px;">
+            <div class="task-checkbox" style="border-color:var(--danger);"></div>
+            <div class="task-dot" style="background:var(--gold);"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;gap:5px;margin-bottom:3px;flex-wrap:wrap;">
+                <span class="badge" style="background:var(--danger-soft);color:var(--danger);">urgent</span>
+                <span class="badge" style="background:var(--gold-soft);color:var(--ochre-deep);">admin</span>
+              </div>
+              <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px;">Reply to landlord about the leak</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-muted);">10m → ~15m · admin · high</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 10.5V13H5.5L12.5 6L10 3.5L3 10.5Z" stroke="#aab4c3" stroke-width="1.4" stroke-linejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4.5H13M6 4.5V3H10V4.5M5.5 4.5V12.5H10.5V4.5" stroke="#aab4c3" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+
+          <!-- Task B -->
+          <div class="task-card" style="margin-bottom:7px;">
+            <div class="task-checkbox" style="border-color:var(--accent);"></div>
+            <div class="task-dot" style="background:var(--accent);"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;gap:5px;margin-bottom:3px;">
+                <span class="badge" style="background:var(--accent-soft);color:var(--accent-deep);">work</span>
+              </div>
+              <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px;">Draft Q3 retrospective doc</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-muted);">60m → ~90m · work · medium</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 10.5V13H5.5L12.5 6L10 3.5L3 10.5Z" stroke="#aab4c3" stroke-width="1.4" stroke-linejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4.5H13M6 4.5V3H10V4.5M5.5 4.5V12.5H10.5V4.5" stroke="#aab4c3" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+
+          <!-- Task C -->
+          <div class="task-card" style="margin-bottom:7px;">
+            <div class="task-checkbox"></div>
+            <div class="task-dot" style="background:var(--sage);"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;gap:5px;margin-bottom:3px;">
+                <span class="badge" style="background:var(--sage-soft);color:var(--sage-deep);">easy</span>
+                <span class="badge" style="background:#f0f0f8;color:var(--ink-muted);">life</span>
+              </div>
+              <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px;">Drop laundry in the washer</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-muted);">5m → ~7m · life · low</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 10.5V13H5.5L12.5 6L10 3.5L3 10.5Z" stroke="#aab4c3" stroke-width="1.4" stroke-linejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4.5H13M6 4.5V3H10V4.5M5.5 4.5V12.5H10.5V4.5" stroke="#aab4c3" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+
+          <!-- Task D -->
+          <div class="task-card" style="margin-bottom:7px;">
+            <div class="task-checkbox" style="border-color:var(--amber);"></div>
+            <div class="task-dot" style="background:var(--amber);"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;gap:5px;margin-bottom:3px;">
+                <span class="badge" style="background:var(--amber-soft);color:var(--amber);">waiting</span>
+              </div>
+              <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px;">Renew car insurance — needs doc from Dad</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-muted);">20m → ~30m · admin · waiting on</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 10.5V13H5.5L12.5 6L10 3.5L3 10.5Z" stroke="#aab4c3" stroke-width="1.4" stroke-linejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4.5H13M6 4.5V3H10V4.5M5.5 4.5V12.5H10.5V4.5" stroke="#aab4c3" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+
+          <!-- Task E -->
+          <div class="task-card" style="margin-bottom:7px;">
+            <div class="task-checkbox" style="border-color:var(--teal);"></div>
+            <div class="task-dot" style="background:var(--teal);"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;gap:5px;margin-bottom:3px;">
+                <span class="badge" style="background:var(--teal-soft);color:var(--teal);">health</span>
+              </div>
+              <div style="font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px;">Book follow-up with Dr. Patel</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-muted);">10m → ~12m · health · high</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 10.5V13H5.5L12.5 6L10 3.5L3 10.5Z" stroke="#aab4c3" stroke-width="1.4" stroke-linejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4.5H13M6 4.5V3H10V4.5M5.5 4.5V12.5H10.5V4.5" stroke="#aab4c3" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Floating Dock -->
+      <div class="dock">
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="11.5" y="3" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="3" y="11.5" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/></svg></div>
+        <div class="dock-btn active"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 6H16M4 10H16M4 14H10" stroke="#4a63a7" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+        <div class="dock-fab"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4V16M4 10H16" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="2" width="14" height="16" rx="2" stroke="#aab4c3" stroke-width="1.5"/><path d="M7 7H13M7 10H11M7 13H9" stroke="#aab4c3" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 15L6 9L9.5 13L13 7L17 15H3Z" stroke="#aab4c3" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="8" r="3.5" stroke="#aab4c3" stroke-width="1.5"/><path d="M3.5 17C3.5 14 6.5 12 10 12C13.5 12 16.5 14 16.5 17" stroke="#aab4c3" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SCREEN 3: CALENDAR
+  ══════════════════════════════════════════════════════════ -->
+  <div style="position:relative; flex-shrink:0;">
+    <div class="frame-label">03 — Calendar</div>
+    <div class="frame">
+      <div class="content-scroll">
+        <!-- Topbar -->
+        <div class="topbar" style="align-items:center;">
+          <div>
+            <div class="kicker">May 2026</div>
+            <div style="font-family:'Lora',serif;font-size:26px;font-weight:500;letter-spacing:-0.025em;color:var(--ink);margin-top:2px;">Calendar</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:30px;height:30px;border:1.5px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7L9 11" stroke="#7d8798" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div style="width:30px;height:30px;border:1.5px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3L9 7L5 11" stroke="#7d8798" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div style="background:var(--charcoal);color:white;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;border-radius:7px;padding:5px 10px;">Today</div>
+          </div>
+        </div>
+
+        <div style="padding:0 18px;">
+          <!-- Weekday header -->
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;border-bottom:2px solid var(--ink);padding-bottom:6px;">
+            <div style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--danger);">S</div>
+            <div style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--ink-muted);">M</div>
+            <div style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--ink-muted);">T</div>
+            <div style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--ink-muted);">W</div>
+            <div style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--ink-muted);">T</div>
+            <div style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--ink-muted);">F</div>
+            <div style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--accent);">S</div>
+          </div>
+
+          <!-- Calendar grid: May 2026 — starts Friday May 1 -->
+          <div class="cal-grid" style="border-radius:10px;overflow:hidden;">
+            <!-- Week 1: blanks + May 1 (Fri) -->
+            <div class="cal-cell"></div>
+            <div class="cal-cell"></div>
+            <div class="cal-cell"></div>
+            <div class="cal-cell"></div>
+            <div class="cal-cell"></div>
+            <div class="cal-cell"><div class="cal-day-num">1</div></div>
+            <div class="cal-cell"><div class="cal-day-num">2</div></div>
+            <!-- Week 2 -->
+            <div class="cal-cell"><div class="cal-day-num">3</div></div>
+            <div class="cal-cell"><div class="cal-day-num">4</div></div>
+            <div class="cal-cell"><div class="cal-day-num">5</div></div>
+            <div class="cal-cell"><div class="cal-day-num">6</div></div>
+            <div class="cal-cell"><div class="cal-day-num">7</div></div>
+            <div class="cal-cell"><div class="cal-day-num">8</div></div>
+            <div class="cal-cell"><div class="cal-day-num">9</div></div>
+            <!-- Week 3 -->
+            <div class="cal-cell"><div class="cal-day-num">10</div></div>
+            <div class="cal-cell"><div class="cal-day-num">11</div></div>
+            <div class="cal-cell"><div class="cal-day-num">12</div><div class="event-pill" style="background:var(--gold-soft);color:var(--ochre-deep);">Dentist</div></div>
+            <div class="cal-cell"><div class="cal-day-num">13</div></div>
+            <div class="cal-cell"><div class="cal-day-num">14</div></div>
+            <div class="cal-cell"><div class="cal-day-num">15</div></div>
+            <div class="cal-cell"><div class="cal-day-num">16</div></div>
+            <!-- Week 4 -->
+            <div class="cal-cell"><div class="cal-day-num">17</div></div>
+            <div class="cal-cell"><div class="cal-day-num today">18</div></div>
+            <div class="cal-cell"><div class="cal-day-num">19</div></div>
+            <div class="cal-cell selected-cell"><div class="cal-day-num selected">20</div><div class="event-pill" style="background:var(--accent-soft);color:var(--accent-deep);">1:1 w/ Priya</div></div>
+            <div class="cal-cell"><div class="cal-day-num">21</div><div class="event-pill" style="background:var(--gold-soft);color:var(--ochre-deep);">Dr. Patel</div></div>
+            <div class="cal-cell"><div class="cal-day-num">22</div></div>
+            <div class="cal-cell"><div class="cal-day-num">23</div></div>
+            <!-- Week 5 -->
+            <div class="cal-cell"><div class="cal-day-num">24</div></div>
+            <div class="cal-cell"><div class="cal-day-num">25</div></div>
+            <div class="cal-cell"><div class="cal-day-num">26</div></div>
+            <div class="cal-cell"><div class="cal-day-num">27</div></div>
+            <div class="cal-cell"><div class="cal-day-num">28</div></div>
+            <div class="cal-cell"><div class="cal-day-num">29</div></div>
+            <div class="cal-cell"><div class="cal-day-num">30</div></div>
+            <!-- Row 6: May 31 -->
+            <div class="cal-cell"><div class="cal-day-num">31</div></div>
+            <div class="cal-cell" style="background:var(--paper);"></div>
+            <div class="cal-cell" style="background:var(--paper);"></div>
+            <div class="cal-cell" style="background:var(--paper);"></div>
+            <div class="cal-cell" style="background:var(--paper);"></div>
+            <div class="cal-cell" style="background:var(--paper);"></div>
+            <div class="cal-cell" style="background:var(--paper);"></div>
+          </div>
+
+          <!-- Detail panel -->
+          <div style="border-top:2px solid var(--ink);margin-top:12px;padding-top:12px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+              <div style="font-family:'Lora',serif;font-size:17px;font-weight:500;color:var(--ink);">Tuesday, May 20</div>
+              <span class="badge" style="background:var(--accent-soft);color:var(--accent-deep);">Selected</span>
+            </div>
+
+            <!-- Event 1 -->
+            <div class="card" style="display:flex;overflow:hidden;margin-bottom:8px;padding:0;">
+              <div style="width:4px;background:var(--accent-deep);flex-shrink:0;border-radius:0;"></div>
+              <div style="padding:10px 12px;flex:1;">
+                <div class="kicker" style="margin-bottom:2px;">2:00 PM — 1 hr</div>
+                <div style="font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;color:var(--ink);">1:1 with Priya (work)</div>
+              </div>
+            </div>
+
+            <!-- Event 2 -->
+            <div class="card" style="display:flex;overflow:hidden;padding:0;">
+              <div style="width:4px;background:var(--gold);flex-shrink:0;"></div>
+              <div style="padding:10px 12px;flex:1;">
+                <div class="kicker" style="margin-bottom:2px;">4:30 PM — 30 min</div>
+                <div style="font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;color:var(--ink);">Q3 planning standup</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Floating Dock -->
+      <div class="dock">
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="11.5" y="3" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="3" y="11.5" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 6H16M4 10H16M4 14H10" stroke="#aab4c3" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+        <div class="dock-fab"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4V16M4 10H16" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="dock-btn active"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="2" width="14" height="16" rx="2" stroke="#4a63a7" stroke-width="1.5"/><path d="M7 7H13M7 10H11M7 13H9" stroke="#4a63a7" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 15L6 9L9.5 13L13 7L17 15H3Z" stroke="#aab4c3" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="8" r="3.5" stroke="#aab4c3" stroke-width="1.5"/><path d="M3.5 17C3.5 14 6.5 12 10 12C13.5 12 16.5 14 16.5 17" stroke="#aab4c3" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SCREEN 4: JOURNAL
+  ══════════════════════════════════════════════════════════ -->
+  <div style="position:relative; flex-shrink:0;">
+    <div class="frame-label">04 — Journal</div>
+    <div class="frame">
+      <div class="content-scroll">
+        <!-- Topbar -->
+        <div class="topbar">
+          <div>
+            <div class="kicker">Daily Log</div>
+            <div style="font-family:'Lora',serif;font-size:26px;font-weight:500;letter-spacing:-0.025em;color:var(--ink);margin-top:2px;">Journal</div>
+          </div>
+          <button class="btn-primary" style="border-radius:999px;padding:8px 14px;">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 8.5V10H3.5L9.5 4L8 2.5L2 8.5Z" stroke="white" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            Write
+          </button>
+        </div>
+
+        <div style="padding:0 18px;">
+          <!-- Tabs -->
+          <div style="display:flex;gap:0;border-bottom:1.5px solid var(--line);margin-bottom:14px;">
+            <div style="padding:6px 12px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink);border-bottom:2.5px solid var(--charcoal);margin-bottom:-1.5px;cursor:pointer;">📅 Today</div>
+            <div style="padding:6px 12px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);cursor:pointer;">🗂 History (0)</div>
+          </div>
+
+          <!-- Date kicker -->
+          <div class="kicker" style="margin-bottom:14px;">Saturday, May 18, 2026</div>
+
+          <!-- MOOD section -->
+          <div class="bj-section">
+            <div class="bj-header">
+              <span class="bj-sig">~ Mood &amp; Thoughts</span>
+              <div class="bj-line"></div>
+              <span class="bj-plus">+ write</span>
+            </div>
+            <div class="card" style="padding:11px 13px;display:flex;align-items:center;gap:10px;">
+              <span style="font-family:'Lora',serif;font-style:italic;font-size:13.5px;color:var(--ink-faint);">Tap · to add a note…</span>
+            </div>
+          </div>
+
+          <!-- ENERGY section -->
+          <div class="bj-section">
+            <div class="bj-header">
+              <span class="bj-sig">! Energy Levels</span>
+              <div class="bj-line"></div>
+            </div>
+            <div class="card" style="padding:11px 13px;display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <div style="font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;color:var(--ink-soft);">Drained</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-faint);">8:00 AM</div>
+              </div>
+              <div style="display:flex;gap:5px;">
+                <div style="width:10px;height:10px;border-radius:50%;background:var(--amber);"></div>
+                <div style="width:10px;height:10px;border-radius:50%;background:var(--amber-soft);border:1.5px solid var(--amber);"></div>
+                <div style="width:10px;height:10px;border-radius:50%;background:var(--amber-soft);border:1.5px solid var(--amber);"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- APPTS + TASKS 2-col -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+            <div>
+              <div class="bj-header">
+                <span class="bj-sig">@ Appts</span>
+                <div class="bj-line"></div>
+              </div>
+              <div class="card" style="padding:10px 11px;">
+                <div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--ink);margin-bottom:3px;">Dr. Patel</div>
+                <div class="kicker" style="font-size:9.5px;">Wed, 4:30 PM</div>
+              </div>
+            </div>
+            <div>
+              <div class="bj-header">
+                <span class="bj-sig">✓ Done</span>
+                <div class="bj-line"></div>
+              </div>
+              <div class="card" style="padding:10px 11px;">
+                <div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:500;color:var(--ink-muted);text-decoration:line-through;margin-bottom:3px;">Check Slack</div>
+                <div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:500;color:var(--ink-muted);text-decoration:line-through;">Take meds</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MEALS + SLEEP 2-col -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+            <div>
+              <div class="bj-header">
+                <span class="bj-sig">▸ Meals</span>
+                <div class="bj-line"></div>
+                <span class="bj-plus">+ log</span>
+              </div>
+              <div class="card" style="padding:10px 11px;">
+                <div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--ink);margin-bottom:2px;">Oats + banana</div>
+                <div class="kicker" style="font-size:9px;color:var(--terra);">Breakfast · 8:30</div>
+                <div style="height:1px;background:var(--line-soft);margin:6px 0;"></div>
+                <div style="font-family:'Lora',serif;font-style:italic;font-size:12px;color:var(--ink-faint);">lunch?</div>
+              </div>
+            </div>
+            <div>
+              <div class="bj-header">
+                <span class="bj-sig">z Sleep</span>
+                <div class="bj-line"></div>
+                <span class="bj-plus">+ log</span>
+              </div>
+              <div class="card" style="padding:10px 11px;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--teal);margin-bottom:2px;">6h 20m</div>
+                <div class="kicker" style="font-size:9px;color:var(--teal);">11:40 → 6:00</div>
+                <div style="height:4px;background:var(--teal-soft);border-radius:2px;margin-top:6px;overflow:hidden;">
+                  <div style="height:100%;width:63%;background:var(--teal);border-radius:2px;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Signifier key -->
+          <div class="card" style="padding:11px 13px;">
+            <div class="kicker" style="margin-bottom:7px;">Signifier Key</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);">· note</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--rose);">~ mood</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--amber);">! energy</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);">@ appt</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--sage);">✓ done</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--terra);">▸ meal</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal);">z sleep</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Floating Dock -->
+      <div class="dock">
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="11.5" y="3" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="3" y="11.5" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 6H16M4 10H16M4 14H10" stroke="#aab4c3" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+        <div class="dock-fab"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4V16M4 10H16" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="dock-btn active"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="2" width="14" height="16" rx="2" fill="#e7edf7" stroke="#4a63a7" stroke-width="1.5"/><path d="M7 7H13M7 10H11M7 13H9" stroke="#4a63a7" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 15L6 9L9.5 13L13 7L17 15H3Z" stroke="#aab4c3" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="8" r="3.5" stroke="#aab4c3" stroke-width="1.5"/><path d="M3.5 17C3.5 14 6.5 12 10 12C13.5 12 16.5 14 16.5 17" stroke="#aab4c3" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SCREEN 5: PATTERNS
+  ══════════════════════════════════════════════════════════ -->
+  <div style="position:relative; flex-shrink:0;">
+    <div class="frame-label">05 — Patterns</div>
+    <div class="frame">
+      <div class="content-scroll">
+        <!-- Topbar -->
+        <div class="topbar">
+          <div>
+            <div class="kicker">Your Insights</div>
+            <div style="font-family:'Lora',serif;font-size:26px;font-weight:500;letter-spacing:-0.025em;color:var(--ink);margin-top:2px;">Patterns</div>
+          </div>
+        </div>
+
+        <div style="padding:0 18px;">
+
+          <!-- Level card -->
+          <div class="card" style="padding:15px 16px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+              <div style="width:42px;height:42px;background:var(--accent-paper);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;">🎯</div>
+              <div>
+                <div class="kicker" style="margin-bottom:1px;">LV 4</div>
+                <div style="font-family:'Lora',serif;font-size:18px;font-weight:500;color:var(--ink);">Finding Focus</div>
+              </div>
+            </div>
+            <!-- XP bar -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+              <span style="font-family:'Inter',sans-serif;font-size:12px;color:var(--ink-muted);">600 XP to Level 5</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent-deep);">600 XP</span>
+            </div>
+            <div style="height:7px;background:var(--accent-soft);border-radius:999px;overflow:hidden;margin-bottom:12px;">
+              <div style="height:100%;width:60%;background:linear-gradient(90deg,var(--accent),var(--accent-deep));border-radius:999px;"></div>
+            </div>
+            <!-- Quick stats -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;border-top:1px solid var(--line-soft);padding-top:10px;">
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--accent-deep);">1.24×</div>
+                <div class="kicker" style="font-size:9px;">Multiplier</div>
+              </div>
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--ink);">12</div>
+                <div class="kicker" style="font-size:9px;">Done</div>
+              </div>
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--rose);">3</div>
+                <div class="kicker" style="font-size:9px;">Symptoms</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: When sharpest -->
+          <div class="section-head">
+            <h2>When you're <em>sharpest.</em></h2>
+          </div>
+
+          <!-- Bar chart SVG -->
+          <div class="card" style="padding:14px 14px 10px;margin-bottom:10px;">
+            <svg width="322" height="80" viewBox="0 0 322 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Hour labels -->
+              <text x="8" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">6a</text>
+              <text x="25" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">7</text>
+              <text x="42" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">8</text>
+              <text x="59" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">9</text>
+              <text x="74" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">10</text>
+              <text x="92" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">11</text>
+              <text x="108" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">12</text>
+              <text x="126" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">1p</text>
+              <text x="143" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">2</text>
+              <text x="160" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">3</text>
+              <text x="177" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">4</text>
+              <text x="194" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">5</text>
+              <text x="211" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">6</text>
+              <text x="228" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">7</text>
+              <text x="245" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">8</text>
+              <text x="262" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">9</text>
+              <text x="279" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">10</text>
+              <text x="296" y="78" fill="#aab4c3" font-family="JetBrains Mono" font-size="7">11</text>
+              <!-- Bars (heights in reverse, low = tall y value) -->
+              <rect x="6" y="62" width="10" height="10" rx="2" fill="#dbe2ec"/>
+              <rect x="23" y="55" width="10" height="17" rx="2" fill="#dbe2ec"/>
+              <rect x="40" y="45" width="10" height="27" rx="2" fill="#dbe2ec"/>
+              <rect x="57" y="35" width="10" height="37" rx="2" fill="#6a82c4"/>
+              <rect x="74" y="12" width="10" height="60" rx="2" fill="#4a63a7"/>
+              <rect x="91" y="8" width="10" height="64" rx="2" fill="#4a63a7"/>
+              <rect x="108" y="28" width="10" height="44" rx="2" fill="#6a82c4"/>
+              <rect x="125" y="48" width="10" height="24" rx="2" fill="#dbe2ec"/>
+              <rect x="142" y="52" width="10" height="20" rx="2" fill="#dbe2ec"/>
+              <rect x="159" y="42" width="10" height="30" rx="2" fill="#6a82c4"/>
+              <rect x="176" y="50" width="10" height="22" rx="2" fill="#dbe2ec"/>
+              <rect x="193" y="48" width="10" height="24" rx="2" fill="#dbe2ec"/>
+              <rect x="210" y="55" width="10" height="17" rx="2" fill="#dbe2ec"/>
+              <rect x="227" y="60" width="10" height="12" rx="2" fill="#dbe2ec"/>
+              <rect x="244" y="62" width="10" height="10" rx="2" fill="#dbe2ec"/>
+              <rect x="261" y="64" width="10" height="8" rx="2" fill="#dbe2ec"/>
+              <rect x="278" y="65" width="10" height="7" rx="2" fill="#dbe2ec"/>
+              <rect x="295" y="66" width="10" height="6" rx="2" fill="#dbe2ec"/>
+            </svg>
+            <!-- Insights rows -->
+            <div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;align-items:flex-start;gap:8px;">
+                <div style="width:7px;height:7px;border-radius:50%;background:var(--accent-deep);margin-top:4px;flex-shrink:0;"></div>
+                <span style="font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink-soft);">You complete the most tasks between <b>10 AM and noon</b>.</span>
+              </div>
+              <div style="display:flex;align-items:flex-start;gap:8px;">
+                <div style="width:7px;height:7px;border-radius:50%;background:var(--amber);margin-top:4px;flex-shrink:0;"></div>
+                <span style="font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink-soft);">Afternoon slump hits around <b>2–3 PM</b> most days.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: What got done -->
+          <div class="section-head">
+            <h2>What got <em>done.</em></h2>
+          </div>
+
+          <div class="card" style="padding:13px 14px;margin-bottom:10px;">
+            <!-- Stacked bar -->
+            <div style="height:14px;border-radius:999px;overflow:hidden;display:flex;margin-bottom:10px;">
+              <div style="flex:4;background:var(--sage);"></div>
+              <div style="flex:3;background:var(--accent);"></div>
+              <div style="flex:2;background:var(--rose);"></div>
+              <div style="flex:1;background:var(--gold);"></div>
+            </div>
+            <!-- Legend -->
+            <div style="display:flex;flex-wrap:wrap;gap:10px;">
+              <div style="display:flex;align-items:center;gap:5px;"><div style="width:8px;height:8px;border-radius:2px;background:var(--sage);"></div><span style="font-family:'Inter',sans-serif;font-size:11.5px;color:var(--ink-soft);">Life (40%)</span></div>
+              <div style="display:flex;align-items:center;gap:5px;"><div style="width:8px;height:8px;border-radius:2px;background:var(--accent);"></div><span style="font-family:'Inter',sans-serif;font-size:11.5px;color:var(--ink-soft);">Work (30%)</span></div>
+              <div style="display:flex;align-items:center;gap:5px;"><div style="width:8px;height:8px;border-radius:2px;background:var(--rose);"></div><span style="font-family:'Inter',sans-serif;font-size:11.5px;color:var(--ink-soft);">Health (20%)</span></div>
+              <div style="display:flex;align-items:center;gap:5px;"><div style="width:8px;height:8px;border-radius:2px;background:var(--gold);"></div><span style="font-family:'Inter',sans-serif;font-size:11.5px;color:var(--ink-soft);">Admin (10%)</span></div>
+            </div>
+          </div>
+
+          <!-- Range toggle -->
+          <div style="display:flex;background:var(--paper2);border-radius:999px;padding:3px;margin-bottom:14px;">
+            <div style="flex:1;background:var(--charcoal);color:white;border-radius:999px;padding:6px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;">Week</div>
+            <div style="flex:1;padding:6px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-muted);">Month</div>
+            <div style="flex:1;padding:6px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-muted);">All time</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Floating Dock -->
+      <div class="dock">
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="11.5" y="3" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="3" y="11.5" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 6H16M4 10H16M4 14H10" stroke="#aab4c3" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+        <div class="dock-fab"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4V16M4 10H16" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="2" width="14" height="16" rx="2" stroke="#aab4c3" stroke-width="1.5"/><path d="M7 7H13M7 10H11M7 13H9" stroke="#aab4c3" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+        <div class="dock-btn active"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 15L6 9L9.5 13L13 7L17 15H3Z" fill="#e7edf7" stroke="#4a63a7" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="8" r="3.5" stroke="#aab4c3" stroke-width="1.5"/><path d="M3.5 17C3.5 14 6.5 12 10 12C13.5 12 16.5 14 16.5 17" stroke="#aab4c3" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SCREEN 6: SETTINGS / ME
+  ══════════════════════════════════════════════════════════ -->
+  <div style="position:relative; flex-shrink:0;">
+    <div class="frame-label">06 — Me</div>
+    <div class="frame">
+      <div class="content-scroll">
+        <!-- Topbar -->
+        <div class="topbar">
+          <div>
+            <div class="kicker">Account</div>
+            <div style="font-family:'Lora',serif;font-size:26px;font-weight:500;letter-spacing:-0.025em;color:var(--ink);margin-top:2px;">Me</div>
+          </div>
+        </div>
+
+        <div style="padding:0 18px;">
+
+          <!-- Profile card -->
+          <div class="card" style="padding:16px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:13px;margin-bottom:12px;">
+              <div style="width:52px;height:52px;border-radius:50%;background:var(--charcoal);display:flex;align-items:center;justify-content:center;">
+                <span style="font-family:'Lora',serif;font-size:22px;font-weight:500;color:white;">A</span>
+              </div>
+              <div>
+                <div style="font-family:'Lora',serif;font-size:20px;font-weight:500;color:var(--ink);margin-bottom:1px;">Alex Chen</div>
+                <div style="font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink-muted);">⚡ Lv 4 — Finding Focus</div>
+              </div>
+            </div>
+            <!-- XP bar -->
+            <div style="height:6px;background:var(--accent-soft);border-radius:999px;overflow:hidden;margin-bottom:12px;">
+              <div style="height:100%;width:60%;background:linear-gradient(90deg,var(--accent),var(--accent-deep));border-radius:999px;"></div>
+            </div>
+            <!-- Stats row -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;gap:8px;border-top:1px solid var(--line-soft);padding-top:10px;">
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--accent-deep);">1.24×</div>
+                <div class="kicker" style="font-size:9px;">Multiplier</div>
+              </div>
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--ink);">12</div>
+                <div class="kicker" style="font-size:9px;">Done</div>
+              </div>
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--rose);">3</div>
+                <div class="kicker" style="font-size:9px;">Symptoms</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADHD Profile section -->
+          <div class="kicker" style="margin-bottom:8px;padding-left:2px;">ADHD Profile</div>
+          <div class="card" style="padding:13px 14px;margin-bottom:12px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span class="badge" style="background:var(--rose-soft);color:var(--rose);font-size:11px;padding:4px 10px;">Inattentive</span>
+              <span class="badge" style="background:var(--amber-soft);color:var(--amber);font-size:11px;padding:4px 10px;">Hyperfocus</span>
+              <span class="badge" style="background:var(--teal-soft);color:var(--teal);font-size:11px;padding:4px 10px;">Time Blindness</span>
+              <span class="badge" style="background:var(--accent-soft);color:var(--accent-deep);font-size:11px;padding:4px 10px;">Task Initiation</span>
+            </div>
+          </div>
+
+          <!-- Quick Links -->
+          <div class="kicker" style="margin-bottom:8px;padding-left:2px;">Quick Links</div>
+          <div class="card" style="padding:0;margin-bottom:12px;overflow:hidden;">
+            <div style="padding:13px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line-soft);">
+              <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink);">Notification Preferences</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3L9 7L5 11" stroke="#aab4c3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div style="padding:13px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line-soft);">
+              <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink);">Integrations &amp; Calendars</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3L9 7L5 11" stroke="#aab4c3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div style="padding:13px 14px;display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink);">Theme &amp; Appearance</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3L9 7L5 11" stroke="#aab4c3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+
+          <!-- Account -->
+          <div class="kicker" style="margin-bottom:8px;padding-left:2px;">Account</div>
+          <div class="card" style="padding:0;margin-bottom:12px;overflow:hidden;">
+            <div style="padding:13px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line-soft);">
+              <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink);">Export My Data</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3L9 7L5 11" stroke="#aab4c3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div style="padding:13px 14px;">
+              <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--danger);">Sign out</span>
+            </div>
+          </div>
+
+          <!-- About -->
+          <div style="text-align:center;padding-bottom:20px;">
+            <span style="font-family:'Inter',sans-serif;font-size:12px;color:var(--ink-faint);">Privacy Policy · Terms of Use · v1.1.0</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Floating Dock -->
+      <div class="dock">
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="11.5" y="3" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="3" y="11.5" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/><rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1.5" stroke="#aab4c3" stroke-width="1.5"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 6H16M4 10H16M4 14H10" stroke="#aab4c3" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+        <div class="dock-fab"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4V16M4 10H16" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="2" width="14" height="16" rx="2" stroke="#aab4c3" stroke-width="1.5"/><path d="M7 7H13M7 10H11M7 13H9" stroke="#aab4c3" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+        <div class="dock-btn"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 15L6 9L9.5 13L13 7L17 15H3Z" stroke="#aab4c3" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+        <div class="dock-btn active"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="8" r="3.5" fill="#e7edf7" stroke="#4a63a7" stroke-width="1.5"/><path d="M3.5 17C3.5 14 6.5 12 10 12C13.5 12 16.5 14 16.5 17" stroke="#4a63a7" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SCREEN 7: FOCUS MODE (DARK)
+  ══════════════════════════════════════════════════════════ -->
+  <div style="position:relative; flex-shrink:0;">
+    <div class="frame-label">07 — Focus Mode</div>
+    <div class="frame" style="background:linear-gradient(180deg, #131b2c 0%, #1b2540 50%, #283457 100%);">
+
+      <!-- Radial overlay -->
+      <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% -10%, rgba(40,53,85,0.9) 0%, transparent 65%);pointer-events:none;"></div>
+
+      <!-- Content -->
+      <div style="position:relative;height:100%;display:flex;flex-direction:column;padding:0 24px;">
+
+        <!-- Top row -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:52px;margin-bottom:auto;">
+          <button style="width:38px;height:38px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="rgba(255,255,255,0.6)" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;color:rgba(170,180,195,0.7);">Focusing</span>
+          <div style="width:38px;"></div>
+        </div>
+
+        <!-- Task name -->
+        <div style="text-align:center;padding:24px 0 32px;">
+          <div style="font-family:'Lora',serif;font-size:22px;font-weight:500;color:white;line-height:1.4;letter-spacing:-0.02em;">Reply to landlord<br>about the leak</div>
+        </div>
+
+        <!-- Ring -->
+        <div style="display:flex;justify-content:center;margin-bottom:32px;">
+          <svg width="240" height="240" viewBox="0 0 240 240" fill="none">
+            <defs>
+              <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#a8baea"/>
+                <stop offset="100%" stop-color="#6a82c4"/>
+              </linearGradient>
+            </defs>
+            <!-- Track circle -->
+            <circle cx="120" cy="120" r="100" stroke="rgba(255,255,255,0.08)" stroke-width="12"/>
+            <!-- Progress arc (75% of 628 = 471) -->
+            <circle cx="120" cy="120" r="100"
+              stroke="url(#ring-grad)"
+              stroke-width="12"
+              stroke-linecap="round"
+              stroke-dasharray="471 157"
+              stroke-dashoffset="157"
+              transform="rotate(-90 120 120)"
+              filter="drop-shadow(0 0 8px rgba(106,130,196,0.6))"/>
+            <!-- Center text -->
+            <text x="120" y="110" text-anchor="middle" font-family="Lora, serif" font-size="42" font-weight="500" fill="white">8:42</text>
+            <text x="120" y="134" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="rgba(170,180,195,0.6)" letter-spacing="2">OF 15:00</text>
+          </svg>
+        </div>
+
+        <!-- Controls -->
+        <div style="display:flex;gap:12px;justify-content:center;margin-bottom:48px;">
+          <button style="display:inline-flex;align-items:center;gap:8px;border:1.5px solid rgba(255,255,255,0.2);border-radius:999px;background:transparent;color:white;font-family:'Inter',sans-serif;font-weight:600;font-size:14px;padding:13px 22px;cursor:pointer;">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="3" y="2" width="3" height="10" rx="1" fill="white"/><rect x="8" y="2" width="3" height="10" rx="1" fill="white"/></svg>
+            Take a break
+          </button>
+          <button style="display:inline-flex;align-items:center;gap:8px;border:none;border-radius:999px;background:white;color:var(--charcoal);font-family:'Inter',sans-serif;font-weight:700;font-size:14px;padding:13px 22px;cursor:pointer;">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7L6 11L12 3" stroke="#172033" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Done
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SCREEN 8: AUTH / LOGIN
+  ══════════════════════════════════════════════════════════ -->
+  <div style="position:relative; flex-shrink:0;">
+    <div class="frame-label">08 — Auth / Login</div>
+    <div class="frame" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--paper) 0%,var(--accent-paper) 100%);">
+      <div class="card" style="width:calc(100% - 40px);border-radius:20px;padding:28px 24px;box-shadow:0 8px 32px rgba(23,32,51,0.12);">
+
+        <!-- Logo -->
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="font-family:'Lora',serif;font-size:30px;font-weight:600;color:var(--ink);letter-spacing:-0.03em;margin-bottom:6px;">MindDock</div>
+          <div style="font-family:'Inter',sans-serif;font-size:13.5px;color:var(--ink-muted);line-height:1.4;max-width:250px;margin:0 auto;">Your capacity-aware coach for ADHD adults.</div>
+        </div>
+
+        <!-- Google button -->
+        <button style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:white;border:1.5px solid var(--card-edge);border-radius:10px;padding:12px 18px;font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink);cursor:pointer;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+            <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <!-- Divider -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="flex:1;height:1px;background:var(--line);"></div>
+          <span style="font-family:'Inter',sans-serif;font-size:12px;color:var(--ink-faint);">or with email</span>
+          <div style="flex:1;height:1px;background:var(--line);"></div>
+        </div>
+
+        <!-- Segmented sign in / create -->
+        <div style="display:flex;background:var(--paper2);border-radius:10px;padding:3px;margin-bottom:14px;">
+          <div style="flex:1;background:white;border-radius:8px;padding:7px;text-align:center;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,0.07);">Sign in</div>
+          <div style="flex:1;padding:7px;text-align:center;font-family:'Inter',sans-serif;font-size:13px;color:var(--ink-muted);">Create account</div>
+        </div>
+
+        <!-- Email field -->
+        <div style="margin-bottom:10px;">
+          <label style="display:block;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:5px;">Email</label>
+          <div class="input-field" style="color:var(--ink-muted);">alex@example.com</div>
+        </div>
+
+        <!-- Password field -->
+        <div style="margin-bottom:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <label style="font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--ink-soft);">Password</label>
+            <span style="font-family:'Inter',sans-serif;font-size:12px;color:var(--accent-deep);font-weight:500;cursor:pointer;">Forgot?</span>
+          </div>
+          <div class="input-field" style="color:var(--ink-faint);letter-spacing:0.2em;">••••••••••</div>
+        </div>
+
+        <!-- Sign in button -->
+        <button class="btn-primary" style="width:100%;justify-content:center;border-radius:10px;padding:13px;font-size:15px;margin-top:14px;">Sign in</button>
+
+        <!-- Privacy note -->
+        <div style="text-align:center;margin-top:14px;">
+          <span style="font-family:'Inter',sans-serif;font-size:11.5px;color:var(--ink-faint);">🔒 Your data is encrypted and private.</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

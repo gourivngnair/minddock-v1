@@ -1,6 +1,10 @@
 import { useState, useRef } from 'react';
 import { useStore } from '../../store/useStore';
-import type { MoodType, JournalEntry, UserEnergy, MealType, SleepEntry, SleepQuality, MealEntry, EnergyLogEntry, Appointment } from '../../types';
+import TimePicker from '../shared/TimePicker';
+import ImageCropper from '../shared/ImageCropper';
+import AddTaskModal from '../tasks/AddTaskModal';
+import ApptSheet from '../appointments/ApptSheet';
+import type { MoodType, JournalEntry, UserEnergy, MealType, SleepEntry, SleepQuality, MealEntry, EnergyLogEntry, Appointment, ParkedItem } from '../../types';
 
 /* ── helpers ── */
 const fmtTime = (iso: string) =>
@@ -41,22 +45,27 @@ function ThoughtRow({ j, onDelete }: { j: JournalEntry; onDelete: () => void }) 
   const m = MOODS.find((x) => x.value === j.mood)!;
   return (
     <div className="bj-row" onClick={() => setExpanded((v) => !v)} style={{ cursor: 'pointer' }}>
-      <span className="bj-bullet">~</span>
+      <span className="bj-bullet" style={{ color: m.color }}>~</span>
       <div className="bj-row-main">
-        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginRight: 6 }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          padding: '1px 8px 1px 5px', borderRadius: 99,
+          background: `${m.color}18`, border: `1px solid ${m.color}40`,
+          fontSize: 12, fontWeight: 700, color: m.color, marginRight: 6, marginBottom: 2,
+        }}>
           {m.emoji} {m.label}
         </span>
         {j.entryText && (
-          <span style={{ color: 'var(--ink-muted)', ...(expanded ? {} : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', maxWidth: '100%' }) }}>
+          <span style={{ color: 'var(--ink-soft)', fontSize: 13, ...(expanded ? {} : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', maxWidth: '100%' }) }}>
             {j.entryText}
           </span>
         )}
         {expanded && j.memoryImageUrl && (
-          <img src={j.memoryImageUrl} alt="Memory" style={{ width: '100%', borderRadius: 8, marginTop: 6, objectFit: 'cover', maxHeight: 140, display: 'block' }} />
+          <img src={j.memoryImageUrl} alt="Memory" style={{ width: 80, height: 80, borderRadius: 8, marginTop: 6, objectFit: 'cover', display: 'block' }} />
         )}
         {expanded && (
           <button onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            style={{ marginTop: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 10, padding: 0, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.1em' }}>
+            style={{ marginTop: 5, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 10.5, padding: 0, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.08em', fontWeight: 700 }}>
             delete entry
           </button>
         )}
@@ -67,25 +76,84 @@ function ThoughtRow({ j, onDelete }: { j: JournalEntry; onDelete: () => void }) 
 }
 
 /* ── BjSection ── */
-function BjSection({ marker, title, action, children, empty }: {
-  marker: string; title: string;
-  action?: React.ReactNode;
+function BjSection({ icon, title, color, onAdd, addLabel, children, empty }: {
+  icon: string;
+  title: string;
+  color: string;
+  onAdd?: () => void;
+  addLabel?: string;
   children?: React.ReactNode;
   empty?: string;
 }) {
   return (
     <div className="bj-section">
-      <div className="bj-section-head">
-        <span className="bj-section-marker">{marker} {title}</span>
-        <div className="bj-section-line" />
-        {action}
-      </div>
-      {children || (
-        <div className="bj-row">
-          <span className="bj-bullet">·</span>
-          <span className="bj-row-main" style={{ fontStyle: 'italic', color: 'var(--ink-muted)' }}>{empty}</span>
+      <div className="bj-section-head" style={{ background: `${color}0d` }}>
+        <div className="bj-section-icon" style={{ background: `${color}22`, color }}>
+          {icon}
         </div>
-      )}
+        <span className="bj-section-title">{title}</span>
+        {onAdd && (
+          <button
+            className="bj-section-action"
+            onClick={onAdd}
+            style={{ color, borderColor: `${color}60` }}
+          >
+            {addLabel ?? '+ add'}
+          </button>
+        )}
+      </div>
+      <div className="bj-section-body">
+        {children || (
+          <div className="bj-row">
+            <span className="bj-bullet" style={{ color: 'var(--ink-faint)' }}>·</span>
+            <span className="bj-row-main" style={{ fontStyle: 'italic', color: 'var(--ink-faint)', fontSize: 13 }}>{empty}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Parked item row ── */
+function ParkedRow({ item, onTask, onAppt, onNote, onDelete }: {
+  item: ParkedItem;
+  onTask: () => void; onAppt: () => void; onNote: () => void; onDelete: () => void;
+}) {
+  const chip = (label: string, color: string, bg: string, onClick: () => void) => (
+    <button onClick={onClick} style={{
+      padding: '4px 10px', borderRadius: 99, border: `1.5px solid ${color}`,
+      background: bg, color, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+      transition: 'all 0.1s', whiteSpace: 'nowrap' as const,
+    }}>{label}</button>
+  );
+  return (
+    <div style={{ padding: '8px 0 6px', borderBottom: '1px solid var(--line-soft)' }}>
+      <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 7, lineHeight: 1.45 }}>{item.text}</div>
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' as const, alignItems: 'center' }}>
+        {chip('→ Task',  'var(--sage-deep)',       'var(--sage-soft, #edf7f0)',   onTask)}
+        {chip('→ Appt',  'var(--gold)',             '#fff8e6',                     onAppt)}
+        {chip('📝 Note', 'var(--amber)',            '#fff8e6',                     onNote)}
+        <button onClick={onDelete} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', fontSize: 12, padding: '2px 4px' }}>Discard</button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Sticky note card ── */
+function StickyNote({ item, onDelete }: { item: ParkedItem; onDelete: () => void }) {
+  return (
+    <div style={{
+      background: '#fffbe6', border: '1.5px solid #f5c842',
+      borderRadius: 10, padding: '10px 12px 8px', marginBottom: 6,
+      position: 'relative',
+    }}>
+      <div style={{ fontSize: 13, color: 'var(--charcoal)', lineHeight: 1.5 }}>{item.text}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+        <span style={{ fontSize: 10, color: 'var(--ink-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+          {fmtTime(item.createdAt)}
+        </span>
+        <button onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', fontSize: 14, padding: '0 2px', lineHeight: 1 }}>×</button>
+      </div>
     </div>
   );
 }
@@ -100,7 +168,18 @@ function ThoughtSheet({ onClose, addEntry, currentEnergy }: {
   const [energy, setEnergy] = useState<UserEnergy>(currentEnergy);
   const [text, setText]     = useState('');
   const [imageUrl, setImg]  = useState('');
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  if (cropSrc) {
+    return (
+      <ImageCropper
+        src={cropSrc}
+        onCrop={(dataUrl) => { setImg(dataUrl); setCropSrc(null); }}
+        onCancel={() => setCropSrc(null)}
+      />
+    );
+  }
 
   return (
     <div className="modal-back fade-in" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -143,10 +222,10 @@ function ThoughtSheet({ onClose, addEntry, currentEnergy }: {
           value={text} onChange={(e) => setText(e.target.value)} autoFocus />
         {text.length > 0 && <div className="tiny muted" style={{ textAlign: 'right', marginBottom: 16 }}>{text.length} chars</div>}
         <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) setImg(URL.createObjectURL(f)); }} />
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropSrc(URL.createObjectURL(f)); e.target.value = ''; }} />
         {imageUrl ? (
           <div style={{ position: 'relative', marginBottom: 18 }}>
-            <img src={imageUrl} alt="Preview" style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 160, display: 'block' }} />
+            <img src={imageUrl} alt="Preview" style={{ width: '100%', aspectRatio: '1', borderRadius: 12, objectFit: 'cover', display: 'block' }} />
             <button onClick={() => setImg('')} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: '50%', cursor: 'pointer', color: '#fff', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
@@ -175,29 +254,44 @@ function ThoughtSheet({ onClose, addEntry, currentEnergy }: {
 /* ── Meal sheet ── */
 function MealSheet({ onClose, addMeal }: { onClose: () => void; addMeal: (m: Omit<MealEntry, 'id' | 'createdAt'>) => void }) {
   const [mealType, setMealType] = useState<MealType>('breakfast');
-  const [desc, setDesc]         = useState('');
-  const [rating, setRating]     = useState<1|2|3>(2);
+  const [desc,     setDesc]     = useState('');
+  const [rating,   setRating]   = useState<1|2|3>(2);
+
+  const nowH = new Date().getHours();
+  const defaultTime = `${String(nowH).padStart(2,'0')}:00`;
+  const [mealTime, setMealTime] = useState(defaultTime);
+
   return (
     <div className="modal-back fade-in" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-sheet">
         <div className="sheet-grip" />
         <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 14 }}>LOG A MEAL</div>
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>
           {(Object.entries(MEAL_INFO) as [MealType, { icon: string; label: string }][]).map(([k, v]) => (
             <button key={k} onClick={() => setMealType(k)} style={{ padding: '12px 10px', borderRadius: 12, cursor: 'pointer', textAlign: 'center', fontWeight: 600, fontSize: 13, background: mealType === k ? 'var(--terra-soft)' : 'var(--paper2)', border: `1.5px solid ${mealType === k ? 'var(--terra)' : 'var(--line)'}`, color: mealType === k ? 'var(--terra-deep)' : 'var(--ink-soft)', transition: 'all 0.15s' }}>{v.icon} {v.label}</button>
           ))}
         </div>
-        <div className="field" style={{ marginBottom: 18 }}>
+
+        <div className="field" style={{ marginBottom: 16 }}>
           <label>What did you eat?</label>
           <input className="input" placeholder="e.g. oats with banana…" value={desc} onChange={(e) => setDesc(e.target.value)} autoFocus />
         </div>
-        <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 10 }}>HOW DID IT FEEL?</div>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
-          {(['😐 Meh', '😊 Good', '🌟 Great'] as const).map((label, i) => (
-            <button key={label} onClick={() => setRating((i + 1) as 1|2|3)} style={{ flex: 1, padding: '10px', borderRadius: 10, cursor: 'pointer', background: rating === i + 1 ? 'var(--terra)' : 'var(--paper2)', border: `1.5px solid ${rating === i + 1 ? 'var(--terra)' : 'var(--line)'}`, color: rating === i + 1 ? '#fff' : 'var(--ink-soft)', fontWeight: 600, fontSize: 13, transition: 'all 0.15s' }}>{label}</button>
-          ))}
+
+        {/* Time + Rating in one row */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 22 }}>
+          <TimePicker value={mealTime} onChange={setMealTime} label="Time" />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="kicker">How did it feel?</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {(['😐 Meh', '😊 Good', '🌟 Great'] as const).map((label, i) => (
+                <button key={label} onClick={() => setRating((i + 1) as 1|2|3)} style={{ flex: 1, padding: '9px 4px', borderRadius: 10, cursor: 'pointer', background: rating === i + 1 ? 'var(--terra)' : 'var(--paper2)', border: `1.5px solid ${rating === i + 1 ? 'var(--terra)' : 'var(--line)'}`, color: rating === i + 1 ? '#fff' : 'var(--ink-soft)', fontWeight: 600, fontSize: 12, transition: 'all 0.15s', textAlign: 'center' as const }}>{label}</button>
+              ))}
+            </div>
+          </div>
         </div>
-        <button className="btn btn-primary btn-block btn-lg" disabled={!desc.trim()} onClick={() => { addMeal({ mealType, description: desc, rating }); onClose(); }}>Log Meal</button>
+
+        <button className="btn btn-primary btn-block btn-lg" disabled={!desc.trim()} onClick={() => { addMeal({ mealType, description: desc, rating, mealTime }); onClose(); }}>Log Meal</button>
         <button className="modal-close" onClick={onClose} aria-label="Close">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -206,29 +300,88 @@ function MealSheet({ onClose, addMeal }: { onClose: () => void; addMeal: (m: Omi
   );
 }
 
+/* ── helpers for sleep form ── */
+function timeToMins(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+function toLocalDateStr(d: Date) { return d.toLocaleDateString('en-CA'); }
+
 /* ── Sleep sheet ── */
 function SleepSheet({ onClose, addSleep }: { onClose: () => void; addSleep: (s: Omit<SleepEntry, 'id' | 'createdAt'>) => void }) {
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const [bedtime, setBedtime]   = useState(`${todayStr}T22:30`);
-  const [wakeTime, setWakeTime] = useState(`${todayStr}T07:00`);
-  const [quality, setQuality]   = useState<SleepQuality>(3);
-  const [notes, setNotes]       = useState('');
-  const dur = () => {
-    const diff = new Date(wakeTime).getTime() - new Date(bedtime).getTime();
-    if (diff <= 0) return null;
-    const h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000);
-    return `${h}h${m > 0 ? ` ${m}m` : ''}`;
+  const [bedTime,  setBedTime]  = useState('22:30');
+  const [wakeTime, setWakeTime] = useState('07:00');
+  const [quality,  setQuality]  = useState<SleepQuality>(3);
+  const [notes,    setNotes]    = useState('');
+
+  // Cross-midnight aware duration
+  const bedMins  = timeToMins(bedTime);
+  const wakeMins = timeToMins(wakeTime);
+  const totalMins = wakeMins >= bedMins ? wakeMins - bedMins : (1440 - bedMins) + wakeMins;
+  const durStr = totalMins > 0
+    ? `${Math.floor(totalMins / 60)}h${totalMins % 60 > 0 ? ` ${totalMins % 60}m` : ''}`
+    : null;
+
+  // Build ISO datetimes for storage
+  const buildISOs = () => {
+    const today     = new Date();
+    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+    const tomorrow  = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    const todayStr     = toLocalDateStr(today);
+    const yesterdayStr = toLocalDateStr(yesterday);
+    const tomorrowStr  = toLocalDateStr(tomorrow);
+
+    // If wake < bed: crosses midnight
+    const crossesMidnight = wakeMins < bedMins;
+    let bedDate: string;
+    if (crossesMidnight) {
+      // Typical overnight: bed yesterday evening, wake today
+      bedDate = yesterdayStr;
+    } else {
+      // Same-day (nap or early morning)
+      bedDate = bedMins < 12 * 60 ? yesterdayStr : todayStr;
+    }
+    const wakeDate = crossesMidnight ? todayStr
+      : (bedDate === yesterdayStr ? todayStr : (wakeMins > 14 * 60 ? tomorrowStr : todayStr));
+
+    return {
+      bedtime:  `${bedDate}T${bedTime}`,
+      wakeTime: `${wakeDate}T${wakeTime}`,
+    };
   };
+
   return (
     <div className="modal-back fade-in" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-sheet">
         <div className="sheet-grip" />
         <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 14 }}>LOG SLEEP</div>
-        <div className="row" style={{ gap: 12, marginBottom: 12 }}>
-          <div className="field" style={{ flex: 1 }}><label>Bedtime</label><input className="input" type="datetime-local" value={bedtime} onChange={(e) => setBedtime(e.target.value)} /></div>
-          <div className="field" style={{ flex: 1 }}><label>Wake time</label><input className="input" type="datetime-local" value={wakeTime} onChange={(e) => setWakeTime(e.target.value)} /></div>
+
+        {/* Bedtime · Wake · Duration all in one row */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 18 }}>
+          <TimePicker value={bedTime}  onChange={setBedTime}  label="Bedtime" />
+          <TimePicker value={wakeTime} onChange={setWakeTime} label="Wake time" />
+
+          {/* Duration — same label-over-content structure, fills remaining width */}
+          <div style={{ flex: 1, minWidth: 72, display: 'flex', flexDirection: 'column' }}>
+            <div className="kicker" style={{ marginBottom: 6, color: durStr ? 'var(--teal-deep)' : 'var(--ink-faint)' }}>Duration</div>
+            <div style={{
+              flex: 1,
+              background: durStr ? 'var(--teal-soft)' : 'var(--paper2)',
+              border: `1.5px solid ${durStr ? 'var(--teal)' : 'var(--line)'}`,
+              borderRadius: 11,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              padding: '8px 10px', gap: 2,
+            }}>
+              <span style={{ fontSize: 18 }}>💤</span>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 15, color: durStr ? 'var(--teal-deep)' : 'var(--ink-faint)', lineHeight: 1 }}>
+                {durStr ?? '—'}
+              </span>
+            </div>
+          </div>
         </div>
-        {dur() && <div style={{ background: 'var(--teal-soft)', border: '1px solid var(--teal)', borderRadius: 10, padding: '8px 12px', marginBottom: 16, textAlign: 'center' }}><span style={{ fontWeight: 700, color: 'var(--teal-deep)', fontSize: 15 }}>💤 {dur()}</span></div>}
+
         <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 10 }}>SLEEP QUALITY</div>
         <div style={{ display: 'flex', gap: 7, marginBottom: 18 }}>
           {([1, 2, 3, 4, 5] as SleepQuality[]).map((q) => (
@@ -238,11 +391,18 @@ function SleepSheet({ onClose, addSleep }: { onClose: () => void; addSleep: (s: 
             </button>
           ))}
         </div>
+
         <div className="field" style={{ marginBottom: 22 }}>
           <label>Notes <span style={{ color: 'var(--ink-muted)', fontWeight: 400 }}>(optional)</span></label>
           <input className="input" placeholder="dreams, disturbances, meds…" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
-        <button className="btn btn-primary btn-block btn-lg" onClick={() => { addSleep({ bedtime, wakeTime, quality, notes: notes || undefined }); onClose(); }}>Log Sleep</button>
+
+        <button className="btn btn-primary btn-block btn-lg" onClick={() => {
+          const { bedtime, wakeTime: wt } = buildISOs();
+          addSleep({ bedtime, wakeTime: wt, quality, notes: notes || undefined });
+          onClose();
+        }}>Log Sleep</button>
+
         <button className="modal-close" onClick={onClose} aria-label="Close">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -344,6 +504,7 @@ export default function JournalTab() {
   const energyLogs         = useStore((s) => s.energyLogs);
   const mealLogs           = useStore((s) => s.mealLogs);
   const sleepLogs          = useStore((s) => s.sleepLogs);
+  const parkedItems        = useStore((s) => s.parkedItems);
   const currentEnergy      = useStore((s) => (s.user?.currentEnergy ?? 3) as UserEnergy);
   const addJournalEntry    = useStore((s) => s.addJournalEntry);
   const deleteJournalEntry = useStore((s) => s.deleteJournalEntry);
@@ -352,11 +513,18 @@ export default function JournalTab() {
   const deleteMealLog      = useStore((s) => s.deleteMealLog);
   const addSleepLog        = useStore((s) => s.addSleepLog);
   const deleteSleepLog     = useStore((s) => s.deleteSleepLog);
+  const addParkedItem      = useStore((s) => s.addParkedItem);
+  const removeParkedItem   = useStore((s) => s.removeParkedItem);
+  const noteParkedItem     = useStore((s) => s.noteParkedItem);
+  const addAppointment     = useStore((s) => s.addAppointment);
 
   const [view, setView]               = useState<'today' | 'history'>('today');
   const [showThoughts, setShowThoughts] = useState(false);
   const [showMeal, setShowMeal]         = useState(false);
   const [showSleep, setShowSleep]       = useState(false);
+  const [parkInput,  setParkInput]      = useState('');
+  const [convertItem, setConvertItem]   = useState<ParkedItem | null>(null);
+  const [convertMode, setConvertMode]   = useState<'task' | 'appt' | null>(null);
 
   const today = todayKey();
 
@@ -373,6 +541,10 @@ export default function JournalTab() {
   const todayMeals    = mealLogs.filter((m) => dateKey(m.createdAt) === today)
                           .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   const todaySleep    = sleepLogs.filter((s) => dateKey(s.createdAt) === today);
+
+  /* Parked: all unprocessed regardless of date; sticky notes only from today */
+  const activeParked  = parkedItems.filter((p) => p.status === 'parked');
+  const todayNotes    = parkedItems.filter((p) => p.status === 'noted' && dateKey(p.createdAt) === today);
 
   /* History slices */
   const allDays = new Set<string>();
@@ -423,43 +595,40 @@ export default function JournalTab() {
               <>
                 {/* 1. Mood & Thoughts */}
                 <BjSection
-                  marker="~" title="mood &amp; thoughts"
-                  action={<button className="bj-section-action" onClick={() => setShowThoughts(true)}>+ write</button>}
-                  empty="no thoughts yet — tap write to capture your mood."
+                  icon="💜" title="Mood & Thoughts"
+                  color="var(--lavender)"
+                  onAdd={() => setShowThoughts(true)} addLabel="+ Write"
+                  empty="No thoughts yet — tap Write to capture your mood."
                 >
-                  {todayThoughts.length > 0 && (
-                    <>
-                      {todayThoughts.map((j) => (
-                        <ThoughtRow key={j.id} j={j} onDelete={() => deleteJournalEntry(j.id)} />
-                      ))}
-                    </>
-                  )}
+                  {todayThoughts.length > 0 && todayThoughts.map((j) => (
+                    <ThoughtRow key={j.id} j={j} onDelete={() => deleteJournalEntry(j.id)} />
+                  ))}
                 </BjSection>
 
                 {/* 2. Energy */}
                 <BjSection
-                  marker="!" title="energy levels"
-                  empty="no readings yet — set from today view."
+                  icon="⚡" title="Energy Levels"
+                  color="var(--amber)"
+                  empty="No readings yet — set from Today view."
                 >
                   {todayEnergy.length > 0 && (
                     <>
                       {todayEnergy.map((e) => (
                         <div key={e.id} className="bj-row">
-                          <span className="bj-bullet">!</span>
-                          <span className="bj-row-main" style={{ color: ENERGY_COLORS[e.energy] }}>
-                            {ENERGY_LABELS[e.energy]}
+                          <span className="bj-bullet" style={{ color: ENERGY_COLORS[e.energy] }}>!</span>
+                          <span className="bj-row-main">
+                            <span style={{ fontWeight: 700, color: ENERGY_COLORS[e.energy] }}>{ENERGY_LABELS[e.energy]}</span>
                             {e.note && <span style={{ color: 'var(--ink-muted)', marginLeft: 8 }}>{e.note}</span>}
                           </span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span className="bj-row-time">{fmtTime(e.createdAt)}</span>
-                            <button onClick={() => deleteEnergyLog(e.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', fontSize: 12, padding: 0 }}>×</button>
+                            <button onClick={() => deleteEnergyLog(e.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', fontSize: 13, padding: 0 }}>×</button>
                           </div>
                         </div>
                       ))}
-                      {/* Pip track */}
                       <div className="bj-pips">
                         {todayEnergy.map((e, i) => (
-                          <div key={i} className="bj-pip" style={{ background: ENERGY_COLORS[e.energy], border: `1px solid ${ENERGY_COLORS[e.energy]}`, opacity: 0.75 }} title={ENERGY_LABELS[e.energy]} />
+                          <div key={i} className="bj-pip" style={{ background: ENERGY_COLORS[e.energy] }} title={ENERGY_LABELS[e.energy]} />
                         ))}
                       </div>
                     </>
@@ -468,23 +637,20 @@ export default function JournalTab() {
 
                 {/* 3+4. Appointments & Tasks — two columns */}
                 <div className="bj-cols">
-                  <BjSection marker="@" title="appointments" empty="no appointments today.">
-                    {todayAppts.length > 0 && todayAppts.map((a) => {
-                      const t = new Date(a.deadline).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                      return (
-                        <div key={a.id} className="bj-row">
-                          <span className="bj-bullet">@</span>
-                          <span className="bj-row-main">{a.title}</span>
-                          <span className="bj-row-time">{t}</span>
-                        </div>
-                      );
-                    })}
+                  <BjSection icon="📅" title="Appointments" color="var(--gold)" empty="No appointments today.">
+                    {todayAppts.length > 0 && todayAppts.map((a) => (
+                      <div key={a.id} className="bj-row">
+                        <span className="bj-bullet" style={{ color: 'var(--gold)' }}>@</span>
+                        <span className="bj-row-main">{a.title}</span>
+                        <span className="bj-row-time">{new Date(a.deadline).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+                      </div>
+                    ))}
                   </BjSection>
 
-                  <BjSection marker="✓" title="tasks done" empty="no tasks completed yet.">
+                  <BjSection icon="✅" title="Tasks Done" color="var(--sage)" empty="No tasks completed yet.">
                     {todayTasks.length > 0 && todayTasks.map((t) => (
                       <div key={t.id} className="bj-row">
-                        <span className="bj-bullet">✓</span>
+                        <span className="bj-bullet" style={{ color: 'var(--sage-deep)' }}>✓</span>
                         <span className="bj-row-main" style={{ textDecoration: 'line-through', color: 'var(--ink-muted)' }}>{t.title}</span>
                         {t.completedAt && <span className="bj-row-time">{fmtTime(t.completedAt)}</span>}
                       </div>
@@ -495,62 +661,111 @@ export default function JournalTab() {
                 {/* 5+6. Meals & Sleep — two columns */}
                 <div className="bj-cols">
                   <BjSection
-                    marker="▸" title="meals"
-                    action={<button className="bj-section-action" onClick={() => setShowMeal(true)}>+ log</button>}
-                    empty="no meals logged today."
+                    icon="🍽️" title="Meals" color="var(--terra)"
+                    onAdd={() => setShowMeal(true)} addLabel="+ Log"
+                    empty="No meals logged today."
                   >
-                    {todayMeals.length > 0 && (
-                      <>
-                        {todayMeals.map((m) => (
-                          <div key={m.id} className="bj-row">
-                            <span className="bj-bullet">▸</span>
-                            <span className="bj-row-main">
-                              {MEAL_INFO[m.mealType].icon} {m.description.slice(0, 20)}{m.description.length > 20 ? '…' : ''}
-                            </span>
-                            <div style={{ display: 'flex', gap: 4 }}>
-                              <span className="bj-row-time">{fmtTime(m.createdAt)}</span>
-                              <button onClick={() => deleteMealLog(m.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', fontSize: 12, padding: 0 }}>×</button>
-                            </div>
-                          </div>
-                        ))}
-                      </>
-                    )}
+                    {todayMeals.length > 0 && todayMeals.map((m) => (
+                      <div key={m.id} className="bj-row">
+                        <span className="bj-bullet" style={{ color: 'var(--terra)' }}>▸</span>
+                        <span className="bj-row-main">
+                          {MEAL_INFO[m.mealType].icon} {m.description.slice(0, 22)}{m.description.length > 22 ? '…' : ''}
+                        </span>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <span className="bj-row-time">{fmtTime(m.createdAt)}</span>
+                          <button onClick={() => deleteMealLog(m.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', fontSize: 13, padding: 0 }}>×</button>
+                        </div>
+                      </div>
+                    ))}
                   </BjSection>
 
                   <BjSection
-                    marker="z" title="sleep"
-                    action={todaySleep.length === 0 ? <button className="bj-section-action" onClick={() => setShowSleep(true)}>+ log</button> : undefined}
-                    empty="no sleep logged."
+                    icon="💤" title="Sleep" color="var(--teal)"
+                    onAdd={todaySleep.length === 0 ? () => setShowSleep(true) : undefined} addLabel="+ Log"
+                    empty="No sleep logged."
                   >
                     {todaySleep.length > 0 && todaySleep.map((s) => {
                       const durMs = new Date(s.wakeTime).getTime() - new Date(s.bedtime).getTime();
                       const durH  = durMs > 0 ? (durMs / 3600000).toFixed(1) : '?';
                       return (
                         <div key={s.id} className="bj-row">
-                          <span className="bj-bullet">z</span>
+                          <span className="bj-bullet" style={{ color: 'var(--teal)' }}>z</span>
                           <span className="bj-row-main">
-                            {durH}h · {SLEEP_Q[s.quality].label}
+                            <span style={{ fontWeight: 700, color: 'var(--teal-deep)' }}>{durH}h</span>
+                            <span style={{ color: 'var(--ink-muted)', fontSize: 12 }}> · {SLEEP_Q[s.quality].label}</span>
                             <br />
-                            <span style={{ color: 'var(--ink-muted)' }}>
+                            <span style={{ color: 'var(--ink-muted)', fontSize: 11.5 }}>
                               {new Date(s.bedtime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} → {new Date(s.wakeTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                             </span>
                           </span>
-                          <button onClick={() => deleteSleepLog(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', fontSize: 12, padding: 0, marginTop: 3 }}>×</button>
+                          <button onClick={() => deleteSleepLog(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', fontSize: 13, padding: 0, marginTop: 2 }}>×</button>
                         </div>
                       );
                     })}
                   </BjSection>
                 </div>
 
+                {/* Quick Capture / Parked */}
+                <BjSection icon="📌" title="Quick Capture" color="var(--indigo)">
+                  {/* Inline capture input */}
+                  <div style={{ display: 'flex', gap: 6, paddingBottom: 10, borderBottom: '1px solid var(--line-soft)', marginBottom: 6 }}>
+                    <input
+                      className="input"
+                      placeholder="Park a thought, idea or reminder…"
+                      value={parkInput}
+                      onChange={(e) => setParkInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && parkInput.trim()) { addParkedItem(parkInput.trim()); setParkInput(''); } }}
+                      style={{ flex: 1, padding: '7px 10px', fontSize: 13 }}
+                    />
+                    <button
+                      disabled={!parkInput.trim()}
+                      onClick={() => { if (parkInput.trim()) { addParkedItem(parkInput.trim()); setParkInput(''); } }}
+                      style={{ padding: '7px 14px', borderRadius: 9, border: 'none', background: parkInput.trim() ? 'var(--indigo)' : 'var(--paper3)', color: parkInput.trim() ? '#fff' : 'var(--ink-faint)', cursor: parkInput.trim() ? 'pointer' : 'default', fontWeight: 700, fontSize: 15, transition: 'all 0.15s' }}
+                    >+</button>
+                  </div>
+
+                  {activeParked.length === 0 && todayNotes.length === 0 && (
+                    <div className="bj-row">
+                      <span className="bj-bullet" style={{ color: 'var(--ink-faint)' }}>·</span>
+                      <span className="bj-row-main" style={{ fontStyle: 'italic', color: 'var(--ink-faint)', fontSize: 13 }}>Nothing parked · type above to capture</span>
+                    </div>
+                  )}
+
+                  {activeParked.map((item) => (
+                    <ParkedRow
+                      key={item.id}
+                      item={item}
+                      onTask={() => { setConvertItem(item); setConvertMode('task'); }}
+                      onAppt={() => { setConvertItem(item); setConvertMode('appt'); }}
+                      onNote={() => noteParkedItem(item.id)}
+                      onDelete={() => removeParkedItem(item.id)}
+                    />
+                  ))}
+
+                  {todayNotes.length > 0 && (
+                    <div style={{ marginTop: activeParked.length > 0 ? 10 : 0 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--ink-muted)', textTransform: 'uppercase', marginBottom: 6, fontFamily: "'JetBrains Mono', monospace" }}>Sticky Notes</div>
+                      {todayNotes.map((item) => (
+                        <StickyNote key={item.id} item={item} onDelete={() => removeParkedItem(item.id)} />
+                      ))}
+                    </div>
+                  )}
+                </BjSection>
+
                 {/* Signifier key */}
                 <div className="bj-key">
-                  <div className="bj-key-item"><span className="bj-key-sym">·</span> note</div>
-                  <div className="bj-key-item"><span className="bj-key-sym">~</span> mood</div>
-                  <div className="bj-key-item"><span className="bj-key-sym">!</span> energy</div>
-                  <div className="bj-key-item"><span className="bj-key-sym">@</span> event</div>
-                  <div className="bj-key-item"><span className="bj-key-sym">✓</span> done</div>
-                  <div className="bj-key-item"><span className="bj-key-sym">▸</span> meal</div>
-                  <div className="bj-key-item"><span className="bj-key-sym">z</span> sleep</div>
+                  {[
+                    { sym: '💜', label: 'mood',  color: 'var(--lavender)' },
+                    { sym: '⚡', label: 'energy', color: 'var(--amber)' },
+                    { sym: '📅', label: 'appt',   color: 'var(--gold)' },
+                    { sym: '✅', label: 'task',   color: 'var(--sage)' },
+                    { sym: '🍽️', label: 'meal',  color: 'var(--terra)' },
+                    { sym: '💤', label: 'sleep',  color: 'var(--teal)' },
+                  ].map(({ sym, label, color }) => (
+                    <div key={label} className="bj-key-item" style={{ borderLeft: `3px solid ${color}` }}>
+                      <span className="bj-key-sym">{sym}</span> {label}
+                    </div>
+                  ))}
                 </div>
               </>
             )}
@@ -587,6 +802,26 @@ export default function JournalTab() {
       {showThoughts && <ThoughtSheet onClose={() => setShowThoughts(false)} addEntry={addJournalEntry} currentEnergy={currentEnergy} />}
       {showMeal     && <MealSheet    onClose={() => setShowMeal(false)}     addMeal={addMealLog} />}
       {showSleep    && <SleepSheet   onClose={() => setShowSleep(false)}    addSleep={addSleepLog} />}
+
+      {convertMode === 'task' && convertItem && (
+        <AddTaskModal
+          initialTitle={convertItem.text}
+          onSave={() => removeParkedItem(convertItem.id)}
+          onClose={() => { setConvertMode(null); setConvertItem(null); }}
+        />
+      )}
+      {convertMode === 'appt' && convertItem && (
+        <ApptSheet
+          initialTitle={convertItem.text}
+          onClose={() => { setConvertMode(null); setConvertItem(null); }}
+          onSave={(data) => {
+            addAppointment(data);
+            removeParkedItem(convertItem.id);
+            setConvertMode(null);
+            setConvertItem(null);
+          }}
+        />
+      )}
     </div>
   );
 }

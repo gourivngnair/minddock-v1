@@ -34,6 +34,28 @@ export interface Task {
   actualTime?: number;
   completedAt?: string;
   createdAt: string;
+  scaffoldMasterId?: string;
+  scaffoldStepIdx?: number;
+}
+
+export interface ScaffoldStep {
+  id: string;
+  title: string;
+  estimatedMinutes: number;
+}
+
+export type ScaffoldRecurrence = 'once' | 'daily' | 'weekly' | 'biweekly' | 'monthly';
+
+export interface ScaffoldMaster {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  steps: ScaffoldStep[];
+  createdAt: string;
+  recurrence?: ScaffoldRecurrence;
+  startDate?: string;       // YYYY-MM-DD — when to first run
+  lastStartedDate?: string; // YYYY-MM-DD — last time a run was kicked off
 }
 
 export interface Appointment {
@@ -70,6 +92,7 @@ export interface MealEntry {
   mealType: MealType;
   description: string;
   rating?: 1 | 2 | 3;
+  mealTime?: string;  // "HH:MM" 24h, local — not synced to Supabase
   createdAt: string;
 }
 
@@ -102,6 +125,13 @@ export interface UserProfile {
   onboardingComplete: boolean;
   tutorialSeen: boolean;
   patternHistory: PatternEntry[];
+}
+
+export interface ParkedItem {
+  id: string;
+  text: string;
+  createdAt: string;
+  status: 'parked' | 'noted';
 }
 
 export interface FrictionItem {

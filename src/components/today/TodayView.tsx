@@ -1,29 +1,41 @@
+import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { fillCapacityBucket } from '../../utils/scoring';
 import { getLevel } from '../../utils/levels';
 import TaskCard from './TaskCard';
 import StuckMode from './StuckMode';
-import EnergyBattery from './EnergySelector';
+import EnergySelector from './EnergySelector';
 import TutorialOverlay from '../shared/TutorialOverlay';
+import AddTaskModal from '../tasks/AddTaskModal';
+import ApptSheet from '../appointments/ApptSheet';
 import type { UserEnergy } from '../../types';
 
 export default function TodayView() {
-  const user = useStore((s) => s.user);
-  const tasks = useStore((s) => s.tasks);
-  const setUserEnergy = useStore((s) => s.setUserEnergy);
-  const setScreen = useStore((s) => s.setScreen);
-  const toggleStuckMode = useStore((s) => s.toggleStuckMode);
+  const user            = useStore((s) => s.user);
+  const tasks           = useStore((s) => s.tasks);
+  const appointments    = useStore((s) => s.appointments);
+  const addAppointment  = useStore((s) => s.addAppointment);
+  const setUserEnergy   = useStore((s) => s.setUserEnergy);
+  const setScreen       = useStore((s) => s.setScreen);
+  const toggleStuckMode      = useStore((s) => s.toggleStuckMode);
+  const setScaffoldDeepLink  = useStore((s) => s.setScaffoldDeepLink);
+
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [showAddAppt, setShowAddAppt] = useState(false);
 
   if (!user) return null;
-  // StuckMode renders as a full-screen replacement for the task list.
-  // BottomNav is handled by App.tsx for all screens including this one.
   if (user.stuckMode) return <StuckMode />;
 
-  const energy = user.currentEnergy as UserEnergy;
+  const energy      = user.currentEnergy as UserEnergy;
   const bucketTasks = fillCapacityBucket(tasks, energy);
-  const doneTasks = tasks.filter((t) => t.completed);
-  const blindPct = Math.round((user.multiplierB - 1) * 100);
-  const lv = getLevel(user.xp);
+  const doneTasks   = tasks.filter((t) => t.completed);
+  const blindPct    = Math.round((user.multiplierB - 1) * 100);
+  const lv          = getLevel(user.xp);
+
+  const apptThisWeek = appointments.filter((a) => {
+    const h = (new Date(a.deadline).getTime() - Date.now()) / 36e5;
+    return h >= 0 && h <= 168;
+  }).length;
 
   return (
     <>
@@ -51,7 +63,7 @@ export default function TodayView() {
       </div>
 
       <div className="screen-scroll">
-        <EnergyBattery value={energy} onChange={setUserEnergy} />
+        <EnergySelector value={energy} onChange={setUserEnergy} />
 
         {/* Time-blindness strip */}
         {blindPct > 0 && (
@@ -76,8 +88,8 @@ export default function TodayView() {
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: 13 }}>Appointments</div>
-              <div className="tiny soft" style={{ marginTop: 1 }}>this week →</div>
+              <div style={{ fontWeight: 600, fontSize: 13 }}>{apptThisWeek} {apptThisWeek === 1 ? 'Appointment' : 'Appointments'} this week</div>
+              <div className="tiny soft" style={{ marginTop: 1 }}>view all →</div>
             </div>
           </button>
           <button className="summary-chip" onClick={() => setScreen('tasks')}>
@@ -91,19 +103,82 @@ export default function TodayView() {
           </button>
         </div>
 
-        {/* Stuck toggle */}
+        {/* Quick add buttons */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <button
+            onClick={() => setShowAddTask(true)}
+            style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              gap: 6, padding: '10px', borderRadius: 10,
+              background: 'var(--charcoal)', color: '#fff',
+              border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+              transition: 'opacity 0.15s',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Task
+          </button>
+          <button
+            onClick={() => setShowAddAppt(true)}
+            style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              gap: 6, padding: '10px', borderRadius: 10,
+              background: 'var(--gold-soft)', color: 'var(--gold)',
+              border: '1.5px solid var(--gold)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+              transition: 'opacity 0.15s',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Appointment
+          </button>
+        </div>
+
+        {/* Start a scaffold shortcut */}
         <button
-          className={`stuck-toggle${user.stuckMode ? ' on' : ''}`}
-          onClick={toggleStuckMode}
+          onClick={() => { setScaffoldDeepLink(); setScreen('tasks'); }}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 8, padding: '10px', borderRadius: 10, marginBottom: 14,
+            background: 'var(--slate-blue-soft)', color: 'var(--slate-blue-deep)',
+            border: '1.5px solid var(--slate-blue)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+            transition: 'opacity 0.15s',
+          }}
         >
-          <div className={`stuck-switch${user.stuckMode ? ' on glow' : ''}`}>
-            <div className="stuck-thumb" />
+          🗂 Start a scaffold
+        </button>
+
+        {/* Stuck toggle — pill style */}
+        <button
+          onClick={toggleStuckMode}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+            padding: '13px 16px', borderRadius: 999,
+            border: `1.5px solid ${user.stuckMode ? 'var(--slate-blue)' : 'var(--line)'}`,
+            background: user.stuckMode ? 'var(--slate-blue-soft)' : '#fff',
+            cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+            marginBottom: 14,
+          }}
+        >
+          {/* Mini toggle track */}
+          <div style={{
+            width: 36, height: 20, borderRadius: 999, flexShrink: 0,
+            background: user.stuckMode ? 'var(--slate-blue-deep)' : 'var(--paper2)',
+            border: `1.5px solid ${user.stuckMode ? 'var(--slate-blue-deep)' : 'var(--line)'}`,
+            position: 'relative', transition: 'all 0.15s',
+          }}>
+            <div style={{
+              width: 14, height: 14, borderRadius: '50%', background: '#fff',
+              position: 'absolute', top: 2,
+              left: user.stuckMode ? 18 : 2,
+              transition: 'left 0.15s',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+            }} />
           </div>
-          <div style={{ flex: 1, textAlign: 'left' }}>
-            <div style={{ fontWeight: 600, fontSize: 15 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, fontSize: 14.5, color: user.stuckMode ? 'var(--slate-blue-deep)' : 'var(--charcoal)' }}>
               {user.stuckMode ? 'Showing tiny, low-resistance only' : 'I feel stuck'}
             </div>
-            <div className="tiny" style={{ opacity: 0.7, marginTop: 2 }}>
+            <div className="tiny" style={{ color: 'var(--ink-muted)', marginTop: 2 }}>
               {user.stuckMode ? 'Filtered to ≤15 min, low energy.' : 'Tap when starting feels impossible.'}
             </div>
           </div>
@@ -191,6 +266,13 @@ export default function TodayView() {
         )}
       </div>
 
+      {showAddTask && <AddTaskModal onClose={() => setShowAddTask(false)} />}
+      {showAddAppt && (
+        <ApptSheet
+          onClose={() => setShowAddAppt(false)}
+          onSave={(data) => addAppointment(data)}
+        />
+      )}
     </>
   );
 }

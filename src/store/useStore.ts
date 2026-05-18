@@ -6,7 +6,7 @@ import * as db from '../lib/db';
 import { supabase } from '../lib/supabase';
 import type {
   Task, Appointment, JournalEntry, UserProfile, UserEnergy, Screen, PatternEntry,
-  EnergyLogEntry, MealEntry, SleepEntry
+  EnergyLogEntry, MealEntry, SleepEntry, ParkedItem, ScaffoldMaster, ScaffoldRecurrence
 } from '../types';
 
 interface AppState {
@@ -19,6 +19,9 @@ interface AppState {
   energyLogs: EnergyLogEntry[];
   mealLogs: MealEntry[];
   sleepLogs: SleepEntry[];
+  parkedItems: ParkedItem[];
+  scaffoldMasters: ScaffoldMaster[];
+  scaffoldDeepLink: boolean;
   focusTaskId: string | null;
   focusStartTime: number | null;
   focusBreakTime: number;
@@ -67,11 +70,25 @@ interface AppState {
   addSleepLog: (sleep: Omit<SleepEntry, 'id' | 'createdAt'>) => void;
   deleteSleepLog: (id: string) => void;
 
+  addParkedItem: (text: string) => void;
+  removeParkedItem: (id: string) => void;
+  noteParkedItem: (id: string) => void;
+
+  addScaffoldMaster: (m: Omit<ScaffoldMaster, 'id' | 'createdAt'>) => void;
+  updateScaffoldMaster: (id: string, updates: Partial<Omit<ScaffoldMaster, 'id' | 'createdAt'>>) => void;
+  deleteScaffoldMaster: (id: string) => void;
+  startScaffold: (masterId: string) => void;
+  setScaffoldDeepLink: () => void;
+  clearScaffoldDeepLink: () => void;
+  checkScheduledScaffolds: () => void;
+
   clearCompleted: () => void;
   resetAll: () => Promise<void>;
   updateUserName: (name: string) => void;
   signOut: () => Promise<void>;
 }
+
+const daysInMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
 
 function syncProfile(userId: string | null, profile: UserProfile | null) {
   if (!userId || !profile) return;
@@ -90,6 +107,9 @@ export const useStore = create<AppState>()(
       energyLogs: [],
       mealLogs: [],
       sleepLogs: [],
+      parkedItems: [],
+      scaffoldMasters: [],
+      scaffoldDeepLink: false,
       focusTaskId: null,
       focusStartTime: null,
       focusBreakTime: 0,
@@ -99,56 +119,90 @@ export const useStore = create<AppState>()(
       hydrateFromSupabase: async (userId) => {
         set({ dataLoading: true, userId });
 
+        // Snapshot local state BEFORE Supabase responds — this is our safety net
+        const local = get();
+
         const { profile, tasks, appointments, journal, energyLogs, mealLogs, sleepLogs } =
           await db.loadAllUserData(userId);
 
+        // Union of two arrays, keyed by id — local item wins on conflict
+        const merge = <T extends { id: string }>(a: T[], b: T[]): T[] => {
+          const m = new Map(b.map((x) => [x.id, x]));
+          a.forEach((x) => m.set(x.id, x));
+          return [...m.values()];
+        };
+
         if (!profile) {
-          set({
-            userId,
-            dataLoading: false,
-            screen: 'onboarding',
-            energyLogs: [],
-            mealLogs: [],
-            sleepLogs: [],
-            user: {
-              name: '', multiplierB: 1.5, xp: 0, symptoms: [],
-              currentEnergy: 3, stuckMode: false,
-              lastActive: new Date().toISOString(),
-              onboardingComplete: false, tutorialSeen: false, patternHistory: [],
-            },
-          });
+          if (local.user?.onboardingComplete) {
+            // Completed onboarding locally but not yet synced — restore and push up
+            const now = new Date().toISOString();
+            set({ userId, dataLoading: false,
+              screen: (local.screen === 'auth' || local.screen === 'onboarding') ? 'today' : local.screen });
+            db.fullSync(userId, {
+              user: local.user, tasks: local.tasks, appointments: local.appointments,
+              journal: local.journal, energyLogs: local.energyLogs,
+              mealLogs: local.mealLogs, sleepLogs: local.sleepLogs,
+            }).catch(console.error);
+            db.upsertProfile(userId, { ...local.user, lastActive: now }).catch(console.error);
+          } else {
+            set({
+              userId, dataLoading: false, screen: 'onboarding',
+              energyLogs: [], mealLogs: [], sleepLogs: [],
+              user: {
+                name: '', multiplierB: 1.5, xp: 0, symptoms: [],
+                currentEnergy: 3, stuckMode: false,
+                lastActive: new Date().toISOString(),
+                onboardingComplete: false, tutorialSeen: false, patternHistory: [],
+              },
+            });
+          }
           return;
         }
 
-        const now = new Date().toISOString();
+        const now  = new Date().toISOString();
         const diff = Date.now() - new Date(profile.lastActive).getTime();
         const needsResurrection = diff > 48 * 60 * 60 * 1000;
+
+        // Merge: local data takes priority (handles failed writes to Supabase)
+        const mergedTasks   = merge(local.tasks,        tasks);
+        const mergedAppts   = merge(local.appointments,  appointments);
+        const mergedJournal = merge(local.journal,       journal);
+        const mergedEnergy  = merge(local.energyLogs,    energyLogs);
+        const mergedMeals   = merge(local.mealLogs,      mealLogs);
+        const mergedSleep   = merge(local.sleepLogs,     sleepLogs);
 
         set({
           userId,
           user: { ...profile, lastActive: now },
-          tasks,
-          appointments,
-          journal,
-          energyLogs,
-          mealLogs,
-          sleepLogs,
+          tasks:       mergedTasks,
+          appointments: mergedAppts,
+          journal:     mergedJournal,
+          energyLogs:  mergedEnergy,
+          mealLogs:    mergedMeals,
+          sleepLogs:   mergedSleep,
           dataLoading: false,
-          screen: !profile.onboardingComplete
-            ? 'onboarding'
-            : needsResurrection
-            ? 'resurrection'
+          screen: !profile.onboardingComplete ? 'onboarding'
+            : needsResurrection ? 'resurrection'
             : 'today',
         });
 
+        // Background sync: push any locally-created items that didn't reach Supabase
+        db.fullSync(userId, {
+          user: { ...profile, lastActive: now },
+          tasks: mergedTasks, appointments: mergedAppts, journal: mergedJournal,
+          energyLogs: mergedEnergy, mealLogs: mergedMeals, sleepLogs: mergedSleep,
+        }).catch(console.error);
         db.upsertProfile(userId, { lastActive: now }).catch(console.error);
+
+        // Auto-start any scaffolds that are due today
+        setTimeout(() => get().checkScheduledScaffolds(), 0);
       },
 
       clearSession: () =>
         set({
           screen: 'auth', user: null, userId: null,
           tasks: [], appointments: [], journal: [],
-          energyLogs: [], mealLogs: [], sleepLogs: [],
+          energyLogs: [], mealLogs: [], sleepLogs: [], parkedItems: [],
         }),
 
       checkResurrection: () => {
@@ -256,12 +310,37 @@ export const useStore = create<AppState>()(
       },
 
       completeTask: (id, viaFocus = false) => {
-        const now = new Date().toISOString();
+        const now  = new Date().toISOString();
+        const task = get().tasks.find((t) => t.id === id);
         set((s) => ({
           tasks: s.tasks.map((t) => t.id === id ? { ...t, completed: true, completedViaFocus: viaFocus, completedAt: now } : t),
           user: s.user ? { ...s.user, xp: s.user.xp + (viaFocus ? 20 : 10) } : s.user,
         }));
         db.updateTask(id, { completed: true, completedViaFocus: viaFocus, completedAt: now }).catch(console.error);
+
+        // Auto-create the next scaffold step
+        if (task?.scaffoldMasterId && task.scaffoldStepIdx !== undefined) {
+          const { scaffoldMasters, userId: uid, user } = get();
+          const master  = scaffoldMasters.find((m) => m.id === task.scaffoldMasterId);
+          const nextIdx = task.scaffoldStepIdx + 1;
+          if (master && nextIdx < master.steps.length) {
+            const step = master.steps[nextIdx];
+            const b    = user?.multiplierB ?? 1.5;
+            const next: Task = {
+              id: nanoid(), createdAt: now,
+              title: step.title, description: '',
+              priority: task.priority, energyRequired: task.energyRequired,
+              location: task.location, userEstimatedTime: step.estimatedMinutes,
+              appRecommendedTime: calcAppRecommendedTime(step.estimatedMinutes, b),
+              bucketTag: task.bucketTag, recurrence: 'once',
+              isScaffolded: true, completed: false, completedViaFocus: false,
+              scaffoldMasterId: master.id, scaffoldStepIdx: nextIdx,
+            };
+            set((s) => ({ tasks: [...s.tasks, next] }));
+            if (uid) db.insertTask(uid, next).catch(console.error);
+          }
+        }
+
         const { userId, user } = get();
         syncProfile(userId, user);
       },
@@ -390,6 +469,103 @@ export const useStore = create<AppState>()(
         db.deleteSleepLog(id).catch(console.error);
       },
 
+      addScaffoldMaster: (m) => {
+        const master: ScaffoldMaster = { ...m, id: nanoid(), createdAt: new Date().toISOString() };
+        set((s) => ({ scaffoldMasters: [...s.scaffoldMasters, master] }));
+      },
+      updateScaffoldMaster: (id, updates) =>
+        set((s) => ({ scaffoldMasters: s.scaffoldMasters.map((m) => m.id === id ? { ...m, ...updates } : m) })),
+      deleteScaffoldMaster: (id) =>
+        set((s) => ({ scaffoldMasters: s.scaffoldMasters.filter((m) => m.id !== id) })),
+      setScaffoldDeepLink: () => set({ scaffoldDeepLink: true }),
+      clearScaffoldDeepLink: () => set({ scaffoldDeepLink: false }),
+
+      startScaffold: (masterId) => {
+        const { scaffoldMasters, user, userId } = get();
+        const master = scaffoldMasters.find((m) => m.id === masterId);
+        if (!master || master.steps.length === 0) return;
+        const b     = user?.multiplierB ?? 1.5;
+        const step  = master.steps[0];
+        const now   = new Date().toISOString();
+        const today = new Date().toLocaleDateString('en-CA');
+        const task: Task = {
+          id: nanoid(), createdAt: now,
+          title: step.title, description: '',
+          priority: 2, energyRequired: 2,
+          location: 'home', userEstimatedTime: step.estimatedMinutes,
+          appRecommendedTime: calcAppRecommendedTime(step.estimatedMinutes, b),
+          bucketTag: 'Life', recurrence: 'once',
+          isScaffolded: true, completed: false, completedViaFocus: false,
+          scaffoldMasterId: master.id, scaffoldStepIdx: 0,
+        };
+        set((s) => ({
+          tasks: [...s.tasks, task],
+          scaffoldMasters: s.scaffoldMasters.map((m) =>
+            m.id === masterId ? { ...m, lastStartedDate: today } : m
+          ),
+        }));
+        if (userId) db.insertTask(userId, task).catch(console.error);
+      },
+
+      checkScheduledScaffolds: () => {
+        const { scaffoldMasters, tasks, user, userId } = get();
+        const today = new Date().toLocaleDateString('en-CA');
+        const b     = user?.multiplierB ?? 1.5;
+        const now   = new Date().toISOString();
+
+        const daysApart = (a: string, b: string) =>
+          Math.floor((new Date(b).getTime() - new Date(a).getTime()) / 86_400_000);
+
+        const isDue = (m: ScaffoldMaster): boolean => {
+          if (!m.recurrence || !m.startDate) return false;
+          if (m.startDate > today) return false;
+          const hasActive = tasks.some((t) => t.scaffoldMasterId === m.id && !t.completed);
+          if (hasActive) return false;
+          if (!m.lastStartedDate) return true; // never started yet
+          if (m.recurrence === 'once') return false; // only runs once
+          const days = daysApart(m.lastStartedDate, today);
+          const needed: Record<ScaffoldRecurrence, number> = {
+            once: Infinity, daily: 1, weekly: 7, biweekly: 14,
+            monthly: daysInMonth(new Date(m.lastStartedDate)),
+          };
+          return days >= needed[m.recurrence];
+        };
+
+        const due = scaffoldMasters.filter(isDue);
+        if (due.length === 0) return;
+
+        const newTasks: Task[] = due.map((m) => {
+          const step = m.steps[0];
+          return {
+            id: nanoid(), createdAt: now,
+            title: step.title, description: '',
+            priority: 2, energyRequired: 2,
+            location: 'home' as const, userEstimatedTime: step.estimatedMinutes,
+            appRecommendedTime: calcAppRecommendedTime(step.estimatedMinutes, b),
+            bucketTag: 'Life' as const, recurrence: 'once' as const,
+            isScaffolded: true, completed: false, completedViaFocus: false,
+            scaffoldMasterId: m.id, scaffoldStepIdx: 0,
+          };
+        });
+
+        set((s) => ({
+          tasks: [...s.tasks, ...newTasks],
+          scaffoldMasters: s.scaffoldMasters.map((m) =>
+            due.find((d) => d.id === m.id) ? { ...m, lastStartedDate: today } : m
+          ),
+        }));
+        if (userId) newTasks.forEach((t) => db.insertTask(userId, t).catch(console.error));
+      },
+
+      addParkedItem: (text) => {
+        const item: ParkedItem = { id: nanoid(), text, status: 'parked', createdAt: new Date().toISOString() };
+        set((s) => ({ parkedItems: [item, ...s.parkedItems] }));
+      },
+      removeParkedItem: (id) => set((s) => ({ parkedItems: s.parkedItems.filter((p) => p.id !== id) })),
+      noteParkedItem: (id) => set((s) => ({
+        parkedItems: s.parkedItems.map((p) => p.id === id ? { ...p, status: 'noted' } : p),
+      })),
+
       clearCompleted: () => {
         const toDelete = get().tasks.filter((t) => t.completed).map((t) => t.id);
         set((s) => ({ tasks: s.tasks.filter((t) => !t.completed) }));
@@ -408,7 +584,8 @@ export const useStore = create<AppState>()(
         // Reset in-memory state — keep userId so the user stays logged in
         set({
           tasks: [], appointments: [], journal: [],
-          energyLogs: [], mealLogs: [], sleepLogs: [],
+          energyLogs: [], mealLogs: [], sleepLogs: [], parkedItems: [],
+          scaffoldMasters: [],
           screen: 'onboarding',
           user: {
             name: userName,
@@ -454,6 +631,7 @@ export const useStore = create<AppState>()(
       partialize: (s) => ({
         user: s.user, tasks: s.tasks, appointments: s.appointments, journal: s.journal,
         energyLogs: s.energyLogs, mealLogs: s.mealLogs, sleepLogs: s.sleepLogs,
+        parkedItems: s.parkedItems, scaffoldMasters: s.scaffoldMasters,
       }),
     }
   )
