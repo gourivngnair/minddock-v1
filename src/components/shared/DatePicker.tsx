@@ -4,6 +4,7 @@ interface Props {
   value: string;          // "YYYY-MM-DD" or ""
   onChange: (v: string) => void;
   allowPast?: boolean;
+  small?: boolean;        // compact trigger to match surrounding chips
 }
 
 /* ── helpers ── */
@@ -154,7 +155,7 @@ function Popover({ trigger, children, open, onOpen, onClose }: {
 }
 
 /* ── public component ── */
-export default function DatePicker({ value, onChange, allowPast = false }: Props) {
+export default function DatePicker({ value, onChange, allowPast = false, small = false }: Props) {
   const today    = toDateStr(new Date());
   const tomorrow = toDateStr(new Date(Date.now() + 86_400_000));
   const monday   = toDateStr(comingMonday());
@@ -182,13 +183,30 @@ export default function DatePicker({ value, onChange, allowPast = false }: Props
     { label: `Mon ${fmtDateDisplay(monday)}`, date: monday },
   ];
 
+  const triggerStyle: React.CSSProperties = small ? {
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    padding: '3px 9px', borderRadius: 99,
+    border: `1.5px solid ${value ? 'var(--slate-blue)' : 'var(--line)'}`,
+    background: value ? 'var(--slate-blue-soft)' : 'var(--paper2)',
+    color: value ? 'var(--slate-blue-deep)' : 'var(--ink-soft)',
+    cursor: 'pointer', fontSize: 11, fontWeight: 600,
+    transition: 'all 0.12s', whiteSpace: 'nowrap' as const, userSelect: 'none' as const,
+  } : triggerChip(!!value);
+
+  const smallCalIcon = (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  );
+
   return (
     <Popover open={open} onOpen={() => setOpen(true)} onClose={() => setOpen(false)}
       trigger={
-        <button style={triggerChip(!!value)}>
-          {calIcon}
+        <button style={triggerStyle}>
+          {small ? smallCalIcon : calIcon}
           {value ? fmtDateDisplay(value) : 'Set date'}
-          <span style={{ fontSize: 8, opacity: 0.55 }}>▾</span>
+          <span style={{ fontSize: small ? 7 : 8, opacity: 0.55 }}>▾</span>
         </button>
       }
     >

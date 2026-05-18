@@ -1369,6 +1369,9 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 .onboard-wrap::-webkit-scrollbar { display: none; }
 
+/* Variant for steps with a scrollable middle section (e.g. scaffold preview) */
+.onboard-wrap--scroll-inner { overflow-y: hidden; }
+
 /* ── Animations ── */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .fade-in { animation: fadeIn 0.22s ease-out; }
@@ -1672,6 +1675,11 @@ input[type="number"] { -moz-appearance: textfield; }
     box-shadow: var(--shadow-lg);
     overflow-y: auto;
     max-height: calc(100dvh - 48px);
+  }
+  /* Steps with a scrollable inner list get a fixed height so flex:1 works */
+  .onboard-wrap--scroll-inner {
+    height: calc(100dvh - 48px);
+    overflow-y: hidden;
   }
 }
 

@@ -71,7 +71,7 @@ function ScaffoldPreview({
   );
 
   return (
-    <div className="onboard-wrap fade-in">
+    <div className="onboard-wrap onboard-wrap--scroll-inner fade-in">
       <Dots step="preview" />
       <div>
         <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 6 }}>STEP 3 OF 3</div>
@@ -83,14 +83,14 @@ function ScaffoldPreview({
         </p>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {scaffolds.length === 0 && (
           <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--ink-muted)', fontSize: 14 }}>
             No scaffolds selected — you can create them later in the Scaffolds tab.
           </div>
         )}
         {scaffolds.map((m, i) => (
-          <div key={i} style={{ background: '#fff', border: `1.5px solid ${m.color}30`, borderRadius: 14, overflow: 'hidden' }}>
+          <div key={i} style={{ flexShrink: 0, background: '#fff', border: `1.5px solid ${m.color}30`, borderRadius: 14, overflow: 'hidden' }}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: `${m.color}0a` }}>
               <div style={{ width: 34, height: 34, borderRadius: 9, background: `${m.color}20`, fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{m.icon}</div>
@@ -112,7 +112,7 @@ function ScaffoldPreview({
               {/* Start date */}
               <div>
                 <div className="tiny muted" style={{ marginBottom: 5 }}>Starts</div>
-                <DatePicker value={schedules[i].startDate} onChange={(d) => setDate(i, d)} />
+                <DatePicker small value={schedules[i].startDate} onChange={(d) => setDate(i, d)} />
               </div>
             </div>
           </div>

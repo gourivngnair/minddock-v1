@@ -9,10 +9,15 @@ interface Props { task: Task; }
 const PRI_COLORS: Record<number, string> = { 1: 'var(--ink-muted)', 2: 'var(--amber)', 3: 'var(--danger)' };
 
 export default function TaskCard({ task }: Props) {
-  const completeTask = useStore((s) => s.completeTask);
-  const updateTask   = useStore((s) => s.updateTask);
-  const startFocus   = useStore((s) => s.startFocus);
-  const setScr       = useStore((s) => s.setScreen);
+  const completeTask    = useStore((s) => s.completeTask);
+  const updateTask      = useStore((s) => s.updateTask);
+  const startFocus      = useStore((s) => s.startFocus);
+  const setScr          = useStore((s) => s.setScreen);
+  const scaffoldMasters = useStore((s) => s.scaffoldMasters);
+
+  const scaffoldMaster = task.scaffoldMasterId
+    ? scaffoldMasters.find((m) => m.id === task.scaffoldMasterId)
+    : null;
 
   const [expanded, setExpanded] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -51,7 +56,19 @@ export default function TaskCard({ task }: Props) {
           onClick={() => setExpanded((v) => !v)}
         >
           <div className="row" style={{ gap: 5, marginBottom: 4, flexWrap: 'wrap' }}>
-            {task.isScaffolded    && <span className="badge sage">scaffold</span>}
+            {scaffoldMaster ? (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '1px 8px', borderRadius: 99,
+                background: `${scaffoldMaster.color}18`,
+                border: `1px solid ${scaffoldMaster.color}40`,
+                fontSize: 11, fontWeight: 700, color: scaffoldMaster.color,
+              }}>
+                {scaffoldMaster.icon} {scaffoldMaster.name} · {(task.scaffoldStepIdx ?? 0) + 1}/{scaffoldMaster.steps.length}
+              </span>
+            ) : task.isScaffolded ? (
+              <span className="badge sage">scaffold</span>
+            ) : null}
             {task.energyRequired === 1 && <span className="badge slate">easy</span>}
             {task.waitingOn       && <span className="badge gold">waiting: {task.waitingOn}</span>}
             {isUrgent             && <span className="badge red">urgent</span>}

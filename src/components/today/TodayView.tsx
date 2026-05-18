@@ -19,16 +19,24 @@ export default function TodayView() {
   const setScreen       = useStore((s) => s.setScreen);
   const toggleStuckMode      = useStore((s) => s.toggleStuckMode);
   const setScaffoldDeepLink  = useStore((s) => s.setScaffoldDeepLink);
-
   const [showAddTask, setShowAddTask] = useState(false);
   const [showAddAppt, setShowAddAppt] = useState(false);
 
   if (!user) return null;
   if (user.stuckMode) return <StuckMode />;
 
-  const energy      = user.currentEnergy as UserEnergy;
-  const bucketTasks = fillCapacityBucket(tasks, energy);
-  const doneTasks   = tasks.filter((t) => t.completed);
+  const energy = user.currentEnergy as UserEnergy;
+
+  // Active scaffold step tasks — always show regardless of capacity budget
+  const scaffoldTasks = tasks.filter((t) => !t.completed && !!t.scaffoldMasterId);
+  const scaffoldIds   = new Set(scaffoldTasks.map((t) => t.id));
+
+  // Regular capacity-filtered tasks, excluding scaffold tasks
+  const bucketTasks = fillCapacityBucket(
+    tasks.filter((t) => !scaffoldIds.has(t.id)),
+    energy
+  );
+  const doneTasks = tasks.filter((t) => t.completed);
   const blindPct    = Math.round((user.multiplierB - 1) * 100);
   const lv          = getLevel(user.xp);
 
@@ -184,7 +192,20 @@ export default function TodayView() {
           </div>
         </button>
 
-        {/* Task list */}
+        {/* Active scaffold tasks — always shown */}
+        {scaffoldTasks.length > 0 && (
+          <>
+            <div className="section-head">
+              <div className="h">🗂 <span className="em">Scaffolds.</span></div>
+              <span className="kicker">{scaffoldTasks.length} active</span>
+            </div>
+            <div className="col" style={{ gap: 10, marginBottom: 8 }}>
+              {scaffoldTasks.map((t) => <TaskCard key={t.id} task={t} />)}
+            </div>
+          </>
+        )}
+
+        {/* Regular capacity-filtered tasks */}
         <div className="section-head">
           <div className="h">For <span className="em">today.</span></div>
           <span className="kicker">{bucketTasks.length} items</span>
