@@ -122,6 +122,7 @@ export interface UserProfile {
   currentEnergy: UserEnergy;
   stuckMode: boolean;
   lastActive: string;
+  createdAt?: string;
   onboardingComplete: boolean;
   tutorialSeen: boolean;
   patternHistory: PatternEntry[];

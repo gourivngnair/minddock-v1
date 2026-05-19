@@ -4,6 +4,7 @@ import { nanoid } from '../utils/nanoid';
 import { calcAppRecommendedTime, updateMultiplierB } from '../utils/scoring';
 import * as db from '../lib/db';
 import { supabase } from '../lib/supabase';
+import { track } from '@vercel/analytics';
 import type {
   Task, Appointment, JournalEntry, UserProfile, UserEnergy, Screen, PatternEntry,
   EnergyLogEntry, MealEntry, SleepEntry, ParkedItem, ScaffoldMaster, ScaffoldRecurrence
@@ -244,6 +245,7 @@ export const useStore = create<AppState>()(
           db.upsertProfile(userId, { symptoms, onboardingComplete: true, lastActive: now }).catch(console.error);
           tasks.forEach((t) => db.insertTask(userId, t).catch(console.error));
         }
+        track('onboarding_completed', { symptom_count: symptoms.length });
       },
 
       setTutorialSeen: () => {
@@ -317,6 +319,11 @@ export const useStore = create<AppState>()(
           user: s.user ? { ...s.user, xp: s.user.xp + (viaFocus ? 20 : 10) } : s.user,
         }));
         db.updateTask(id, { completed: true, completedViaFocus: viaFocus, completedAt: now }).catch(console.error);
+        track('task_completed', { via_focus: viaFocus });
+
+        // Refresh last_active so this counts toward the 5-day active user window
+        const { userId: uid0, user: u0 } = get();
+        if (u0) { set((s) => ({ user: s.user ? { ...s.user, lastActive: now } : s.user })); syncProfile(uid0, get().user); }
 
         // Auto-create the next scaffold step
         if (task?.scaffoldMasterId && task.scaffoldStepIdx !== undefined) {
@@ -399,6 +406,7 @@ export const useStore = create<AppState>()(
         }));
 
         db.updateTask(taskId, { completed: true, completedViaFocus: true, actualTime: totalActualMinutes, completedAt }).catch(console.error);
+        track('focus_session_completed', { duration_mins: totalActualMinutes });
         const { userId, user } = get();
         syncProfile(userId, user);
       },
@@ -421,6 +429,9 @@ export const useStore = create<AppState>()(
           user: s.user ? { ...s.user, xp: s.user.xp + 5 + (hasImage ? 3 : 0) } : s.user,
         }));
         if (userId) db.insertJournalEntry(userId, full).catch(console.error);
+        track('journal_entry_created', { has_image: hasImage });
+        const now2 = new Date().toISOString();
+        set((s) => ({ user: s.user ? { ...s.user, lastActive: now2 } : s.user }));
         const { user } = get();
         syncProfile(userId, user);
       },
@@ -505,6 +516,7 @@ export const useStore = create<AppState>()(
           ),
         }));
         if (userId) db.insertTask(userId, task).catch(console.error);
+        track('scaffold_started', { scaffold_name: master.name, total_steps: master.steps.length });
       },
 
       checkScheduledScaffolds: () => {

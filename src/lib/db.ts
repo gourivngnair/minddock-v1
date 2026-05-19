@@ -25,6 +25,7 @@ export async function fetchProfile(userId: string): Promise<UserProfile | null> 
     currentEnergy:      data.current_energy,
     stuckMode:          data.stuck_mode,
     lastActive:         data.last_active,
+    createdAt:          data.created_at as string | undefined,
     onboardingComplete: data.onboarding_complete,
     tutorialSeen:       data.tutorial_seen,
     patternHistory:     data.pattern_history ?? [],

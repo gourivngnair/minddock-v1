@@ -1,5 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
+import { track } from '@vercel/analytics';
 import { useStore } from './store/useStore';
 import { useAuth } from './hooks/useAuth';
 import AuthScreen from './components/auth/AuthScreen';
@@ -40,6 +43,11 @@ export default function App() {
     document.addEventListener('visibilitychange', handler);
     return () => document.removeEventListener('visibilitychange', handler);
   }, [checkScheduledScaffolds]);
+
+  // Track screen views for engagement analysis
+  useEffect(() => {
+    if (screen && screen !== 'auth') track('screen_viewed', { screen });
+  }, [screen]);
 
   useEffect(() => {
     // Wait until Supabase has confirmed the session before acting.
@@ -113,6 +121,8 @@ export default function App() {
           </>
         )}
       </div>
+      <Analytics />
+      <SpeedInsights />
     </ErrorBoundary>
   );
 }
