@@ -131,25 +131,55 @@ function ScaffoldPreview({
 }
 
 const EC_COLORS: Record<number, string> = { 1: '#E24B4A', 2: '#EF9F27', 3: '#97C459', 4: '#378ADD', 5: '#534AB7' };
-const EC_LABELS: Record<number, string> = { 1: 'Very Low', 2: 'Low', 3: 'Medium', 4: 'High', 5: 'Very High' };
-const BASELINE_SLOTS = [
-  { hour: 5,  label: '5 am' },
-  { hour: 9,  label: '9 am' },
-  { hour: 13, label: '1 pm' },
-  { hour: 17, label: '5 pm' },
-  { hour: 21, label: '9 pm' },
-];
+const EC_LABELS: Record<number, string> = { 1: 'Very Low', 2: 'Low', 3: 'Med', 4: 'High', 5: 'Peak' };
+
+// wakeh 5–10, sleeph 20–26 (24=midnight, 25=1am)
+function calcSlots(wakeH: number, sleepH: number) {
+  return Array.from({ length: 5 }, (_, i) => {
+    const h = Math.round(wakeH + 1 + i * (sleepH - wakeH - 2) / 4);
+    const actual = h % 24;
+    const label = actual === 0 ? '12am' : actual === 12 ? '12pm'
+      : actual < 12 ? `${actual}am` : `${actual - 12}pm`;
+    return { hour: actual, label };
+  });
+}
+
+const WAKE_OPTS  = [5, 6, 7, 8, 9, 10];
+const SLEEP_OPTS = [20, 21, 22, 23, 24, 25];
+const fmtHrOpt = (h: number) => {
+  const a = h % 24;
+  if (a === 0) return '12am';
+  return a < 12 ? `${a}am` : a === 12 ? '12pm' : `${a - 12}pm`;
+};
 
 function EnergyBaseline({
-  baseline, onChange, onNext, onBack,
+  wakeHour, sleepHour, baseline,
+  onWakeChange, onSleepChange, onChange,
+  onNext, onBack,
 }: {
-  baseline: Record<number, UserEnergy>;
-  onChange: (hour: number, val: UserEnergy) => void;
+  wakeHour: number;
+  sleepHour: number;
+  baseline: UserEnergy[];
+  onWakeChange: (h: number) => void;
+  onSleepChange: (h: number) => void;
+  onChange: (idx: number, val: UserEnergy) => void;
   onNext: () => void;
   onBack: () => void;
 }) {
+  const slots = calcSlots(wakeHour, sleepHour);
+
+  const timeChip = (active: boolean, label: string, onClick: () => void) => (
+    <button onClick={onClick} style={{
+      padding: '5px 11px', borderRadius: 99, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+      border: `1.5px solid ${active ? 'var(--slate-blue)' : 'var(--line)'}`,
+      background: active ? 'var(--slate-blue-soft)' : 'var(--paper2)',
+      color: active ? 'var(--slate-blue-deep)' : 'var(--ink-soft)',
+      transition: 'all 0.1s',
+    }}>{label}</button>
+  );
+
   return (
-    <div className="onboard-wrap fade-in">
+    <div className="onboard-wrap onboard-wrap--scroll-inner fade-in">
       <Dots step="energy" />
       <div>
         <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 6 }}>STEP 4 OF 4</div>
@@ -157,41 +187,63 @@ function EnergyBaseline({
           How's your energy usually?
         </div>
         <p style={{ color: 'var(--ink-soft)', fontSize: 13.5, marginTop: 6, lineHeight: 1.6 }}>
-          Pick your typical energy at these times. This seeds your Patterns graph so it's useful from day one.
+          Set your typical schedule and pick energy levels — this seeds your Patterns graph from day one.
         </p>
       </div>
 
-      <div className="col" style={{ gap: 14, flex: 1 }}>
-        {BASELINE_SLOTS.map(({ hour, label }) => {
-          const val = baseline[hour];
-          return (
-            <div key={hour} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 46, flexShrink: 0, fontSize: 13, fontWeight: 600, color: 'var(--ink-soft)', textAlign: 'right' }}>{label}</div>
-              <div style={{ display: 'flex', gap: 6, flex: 1 }}>
-                {([1, 2, 3, 4, 5] as UserEnergy[]).map((lvl) => {
-                  const active = val === lvl;
-                  return (
-                    <button
-                      key={lvl}
-                      onClick={() => onChange(hour, lvl)}
-                      title={EC_LABELS[lvl]}
-                      style={{
-                        flex: 1, height: 36, borderRadius: 8, cursor: 'pointer',
-                        border: `2px solid ${active ? EC_COLORS[lvl] : 'var(--line)'}`,
-                        background: active ? EC_COLORS[lvl] : 'var(--paper2)',
-                        color: active ? '#fff' : EC_COLORS[lvl],
-                        fontSize: 12, fontWeight: 700, transition: 'all 0.12s',
-                      }}
-                    >
-                      {lvl}
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{ width: 54, flexShrink: 0, fontSize: 12, color: EC_COLORS[val], fontWeight: 600 }}>{EC_LABELS[val]}</div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Wake / sleep time pickers */}
+        <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <div className="tiny muted" style={{ marginBottom: 6 }}>Wake up</div>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              {WAKE_OPTS.map((h) => timeChip(wakeHour === h, fmtHrOpt(h), () => onWakeChange(h)))}
             </div>
-          );
-        })}
+          </div>
+          <div>
+            <div className="tiny muted" style={{ marginBottom: 6 }}>Go to sleep</div>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              {SLEEP_OPTS.map((h) => timeChip(sleepHour === h, fmtHrOpt(h), () => onSleepChange(h)))}
+            </div>
+          </div>
+          <div className="tiny muted" style={{ paddingTop: 4, borderTop: '1px solid var(--line-soft)' }}>
+            Tracking at: {slots.map((s) => s.label).join(' · ')}
+          </div>
+        </div>
+
+        {/* Energy level pickers per slot */}
+        <div className="col" style={{ gap: 10 }}>
+          {slots.map(({ label }, idx) => {
+            const val = baseline[idx];
+            return (
+              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 44, flexShrink: 0, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-soft)', textAlign: 'right' }}>{label}</div>
+                <div style={{ display: 'flex', gap: 5, flex: 1 }}>
+                  {([1, 2, 3, 4, 5] as UserEnergy[]).map((lvl) => {
+                    const active = val === lvl;
+                    return (
+                      <button
+                        key={lvl}
+                        onClick={() => onChange(idx, lvl)}
+                        title={EC_LABELS[lvl]}
+                        style={{
+                          flex: 1, height: 34, borderRadius: 7, cursor: 'pointer',
+                          border: `2px solid ${active ? EC_COLORS[lvl] : 'var(--line)'}`,
+                          background: active ? EC_COLORS[lvl] : 'var(--paper2)',
+                          color: active ? '#fff' : EC_COLORS[lvl],
+                          fontSize: 12, fontWeight: 700, transition: 'all 0.12s',
+                        }}
+                      >
+                        {lvl}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ width: 52, flexShrink: 0, fontSize: 11, color: EC_COLORS[val], fontWeight: 700 }}>{EC_LABELS[val]}</div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="row" style={{ gap: 10 }}>
@@ -207,7 +259,9 @@ export default function OnboardingFlow() {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [pendingScaffolds, setPendingScaffolds]   = useState<Omit<ScaffoldMaster, 'id' | 'createdAt'>[]>([]);
   const [scheduledScaffolds, setScheduledScaffolds] = useState<Omit<ScaffoldMaster, 'id' | 'createdAt'>[]>([]);
-  const [baseline, setBaseline] = useState<Record<number, UserEnergy>>({ 5: 2, 9: 4, 13: 3, 17: 3, 21: 2 });
+  const [wakeHour, setWakeHour]   = useState(6);
+  const [sleepHour, setSleepHour] = useState(22);
+  const [baseline, setBaseline]   = useState<UserEnergy[]>([2, 4, 3, 3, 2]);
 
   const completeOnboarding = useStore((s) => s.completeOnboarding);
   const addScaffoldMaster  = useStore((s) => s.addScaffoldMaster);
@@ -217,15 +271,18 @@ export default function OnboardingFlow() {
     setSelectedSymptoms((prev) => prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]);
 
   const finish = () => {
+    const slots = calcSlots(wakeHour, sleepHour);
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    BASELINE_SLOTS.forEach(({ hour }) => {
+    slots.forEach(({ hour }, i) => {
       const ts = new Date(yesterday);
       ts.setHours(hour, 0, 0, 0);
-      addEnergyLog(baseline[hour], 'baseline', ts.toISOString());
+      addEnergyLog(baseline[i], 'baseline', ts.toISOString());
     });
     scheduledScaffolds.forEach((m) => addScaffoldMaster(m));
-    completeOnboarding(selectedSymptoms, []);
+    const wakeStr  = `${String(wakeHour).padStart(2, '0')}:00`;
+    const sleepStr = `${String(sleepHour % 24).padStart(2, '0')}:00`;
+    completeOnboarding(selectedSymptoms, [], wakeStr, sleepStr);
   };
 
   if (step === 'friction') return (
@@ -242,8 +299,12 @@ export default function OnboardingFlow() {
 
   if (step === 'energy') return (
     <EnergyBaseline
+      wakeHour={wakeHour}
+      sleepHour={sleepHour}
       baseline={baseline}
-      onChange={(hour, val) => setBaseline((b) => ({ ...b, [hour]: val }))}
+      onWakeChange={setWakeHour}
+      onSleepChange={setSleepHour}
+      onChange={(idx, val) => setBaseline((b) => b.map((v, i) => i === idx ? val : v) as UserEnergy[])}
       onNext={finish}
       onBack={() => setStep('preview')}
     />

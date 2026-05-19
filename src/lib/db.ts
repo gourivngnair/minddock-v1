@@ -29,6 +29,8 @@ export async function fetchProfile(userId: string): Promise<UserProfile | null> 
     onboardingComplete: data.onboarding_complete,
     tutorialSeen:       data.tutorial_seen,
     patternHistory:     data.pattern_history ?? [],
+    wakeTime:           data.wake_time  as string | undefined,
+    sleepTime:          data.sleep_time as string | undefined,
   };
 }
 
@@ -44,6 +46,8 @@ export async function upsertProfile(userId: string, profile: Partial<UserProfile
   if (profile.onboardingComplete !== undefined) row.onboarding_complete  = profile.onboardingComplete;
   if (profile.tutorialSeen       !== undefined) row.tutorial_seen        = profile.tutorialSeen;
   if (profile.patternHistory     !== undefined) row.pattern_history      = profile.patternHistory;
+  if (profile.wakeTime           !== undefined) row.wake_time            = profile.wakeTime;
+  if (profile.sleepTime          !== undefined) row.sleep_time           = profile.sleepTime;
 
   await supabase.from('profiles').upsert(row);
 }

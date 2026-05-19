@@ -126,6 +126,8 @@ export interface UserProfile {
   onboardingComplete: boolean;
   tutorialSeen: boolean;
   patternHistory: PatternEntry[];
+  wakeTime?: string;  // "HH:00" 24h, e.g. "06:00"
+  sleepTime?: string; // "HH:00" 24h, e.g. "22:00" or "00:00" for midnight
 }
 
 export interface ParkedItem {

@@ -20,8 +20,16 @@ const EC: Record<number, string> = {
 const fmtH  = (h: number) => h === 12 ? '12p' : h < 12 ? `${h}a` : `${h - 12}p`;
 const fmtHF = (h: number) => h === 12 ? '12pm' : h < 12 ? `${h}am` : `${h - 12}pm`;
 
+/* ── helpers ── */
+function parseWakeHour(t?: string)  { return t ? parseInt(t) : 6; }
+function parseSleepHour(t?: string) {
+  if (!t) return 22;
+  const h = parseInt(t);
+  return h < 5 ? h + 24 : h; // "00:00" (midnight) → 24, "01:00" → 25
+}
+
 /* ── Energy vs Time-of-Day chart ── */
-function EnergyTimeChart({ logs }: { logs: EnergyLogEntry[] }) {
+function EnergyTimeChart({ logs, wakeTime, sleepTime }: { logs: EnergyLogEntry[]; wakeTime?: string; sleepTime?: string }) {
   const [view, setView] = useState<'average' | 'scatter'>('average');
 
   if (logs.length === 0) {
@@ -38,12 +46,15 @@ function EnergyTimeChart({ logs }: { logs: EnergyLogEntry[] }) {
 
   /* ── Exponential decay aggregation ── */
   const now   = new Date();
-  const HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 6–22
+  const wakeH  = parseWakeHour(wakeTime);
+  const sleepH = parseSleepHour(sleepTime);
+  const chartEnd = Math.min(sleepH, 23);
+  const HOURS  = Array.from({ length: chartEnd - wakeH + 1 }, (_, i) => wakeH + i);
 
   const byHour: Record<number, { wsum: number; wtotal: number }> = {};
   for (const log of logs) {
     const h       = new Date(log.createdAt).getHours();
-    if (h < 6 || h > 22) continue;
+    if (h < wakeH || h > chartEnd) continue;
     const daysAgo = (now.getTime() - new Date(log.createdAt).getTime()) / 86_400_000;
     const w       = Math.pow(0.9, daysAgo);
     if (!byHour[h]) byHour[h] = { wsum: 0, wtotal: 0 };
@@ -74,23 +85,13 @@ function EnergyTimeChart({ logs }: { logs: EnergyLogEntry[] }) {
   const PAD = { t: 14, b: 28, l: 28, r: 12 };
   const iW  = W - PAD.l - PAD.r;
   const iH  = H - PAD.t - PAD.b;
-  const xOf = (h: number) => PAD.l + ((h - 6) / (22 - 6)) * iW;
+  const xOf = (h: number) => PAD.l + ((h - wakeH) / (chartEnd - wakeH)) * iW;
   const yOf = (v: number) => PAD.t + iH - ((v - 1) / 4) * iH;
   const bot  = PAD.t + iH;
 
-  /* ── Build contiguous segments ── */
-  const segments: { hour: number; avg: number }[][] = [];
-  let cur: { hour: number; avg: number }[] = [];
-  for (const p of hourlyAvgs) {
-    if (p.avg !== null) {
-      cur.push({ hour: p.hour, avg: p.avg });
-    } else {
-      if (cur.length) { segments.push(cur); cur = []; }
-    }
-  }
-  if (cur.length) segments.push(cur);
-
+  /* ── Smooth bezier through ALL data points (single continuous curve) ── */
   const buildLine = (pts: { hour: number; avg: number }[]) => {
+    if (pts.length < 2) return '';
     let d = '';
     for (let i = 0; i < pts.length; i++) {
       const x = xOf(pts[i].hour), y = yOf(pts[i].avg);
@@ -101,14 +102,21 @@ function EnergyTimeChart({ logs }: { logs: EnergyLogEntry[] }) {
     return d;
   };
 
+  const avgLinePath = buildLine(withData);
+  const avgAreaPath = withData.length > 1
+    ? `${avgLinePath} L ${xOf(withData[withData.length-1].hour)} ${bot} L ${xOf(withData[0].hour)} ${bot} Z`
+    : '';
+
   /* ── Scatter points ── */
   const scatter = logs.flatMap((log) => {
     const h = new Date(log.createdAt).getHours();
-    if (h < 6 || h > 22) return [];
+    if (h < wakeH || h > chartEnd) return [];
     return [{ x: xOf(h), y: yOf(log.energy), e: log.energy }];
   });
 
-  const LABEL_H = [6, 9, 12, 15, 18, 21];
+  // X labels: show ~5 evenly spaced labels within wakeH–chartEnd
+  const step = Math.ceil((chartEnd - wakeH) / 4);
+  const LABEL_H = Array.from({ length: 5 }, (_, i) => wakeH + i * step).filter((h) => h <= chartEnd);
   const gradTop = yOf(5);
   const gradBot = yOf(1);
 
@@ -160,25 +168,17 @@ function EnergyTimeChart({ logs }: { logs: EnergyLogEntry[] }) {
           );
         })}
 
-        {/* Average view: gradient bezier line + filled area */}
-        {view === 'average' && segments.map((seg, si) => {
-          const lp = buildLine(seg);
-          const ap = seg.length > 1
-            ? `${lp} L ${xOf(seg[seg.length-1].hour)} ${bot} L ${xOf(seg[0].hour)} ${bot} Z`
-            : '';
-          return (
-            <g key={si}>
-              {ap && <path d={ap} fill="url(#ec-fill)" />}
-              {seg.length > 1 && (
-                <path d={lp} fill="none" stroke="url(#ec-line)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-              )}
-              {seg.map((p) => (
-                <circle key={p.hour} cx={xOf(p.hour)} cy={yOf(p.avg)} r={5}
-                  fill={EC[Math.round(p.avg)]} stroke="#fff" strokeWidth="2" />
-              ))}
-            </g>
-          );
-        })}
+        {/* Average view: single continuous gradient bezier line + filled area */}
+        {view === 'average' && (
+          <g>
+            {avgAreaPath && <path d={avgAreaPath} fill="url(#ec-fill)" />}
+            {avgLinePath && <path d={avgLinePath} fill="none" stroke="url(#ec-line)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+            {withData.map((p) => (
+              <circle key={p.hour} cx={xOf(p.hour)} cy={yOf(p.avg)} r={5}
+                fill={EC[Math.round(p.avg)]} stroke="#fff" strokeWidth="2" />
+            ))}
+          </g>
+        )}
 
         {/* Scatter view */}
         {view === 'scatter' && scatter.map((p, i) => (
@@ -379,7 +379,7 @@ export default function PatternsTab() {
               <div className="tiny muted" style={{ marginBottom: 8, lineHeight: 1.5 }}>
                 Your energy pattern across the hours — averaged from all readings.
               </div>
-              <EnergyTimeChart logs={energyLogs} />
+              <EnergyTimeChart logs={energyLogs} wakeTime={user.wakeTime} sleepTime={user.sleepTime} />
             </div>
 
             {/* 7-day history */}

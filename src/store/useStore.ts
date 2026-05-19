@@ -35,7 +35,7 @@ interface AppState {
   checkResurrection: () => boolean;
   freshStart: () => void;
 
-  completeOnboarding: (symptoms: string[], tasks: Omit<Task, 'id' | 'createdAt' | 'appRecommendedTime'>[]) => void;
+  completeOnboarding: (symptoms: string[], tasks: Omit<Task, 'id' | 'createdAt' | 'appRecommendedTime'>[], wakeTime?: string, sleepTime?: string) => void;
   setTutorialSeen: () => void;
 
   setScreen: (screen: Screen) => void;
@@ -224,7 +224,7 @@ export const useStore = create<AppState>()(
         }));
       },
 
-      completeOnboarding: (symptoms, rawTasks) => {
+      completeOnboarding: (symptoms, rawTasks, wakeTime, sleepTime) => {
         const { userId } = get();
         const b   = get().user?.multiplierB ?? 1.5;
         const now = new Date().toISOString();
@@ -236,13 +236,13 @@ export const useStore = create<AppState>()(
         }));
 
         set((s) => ({
-          user: s.user ? { ...s.user, symptoms, onboardingComplete: true, lastActive: now } : s.user,
+          user: s.user ? { ...s.user, symptoms, onboardingComplete: true, lastActive: now, wakeTime, sleepTime } : s.user,
           tasks: [...s.tasks, ...tasks],
           screen: 'today',
         }));
 
         if (userId) {
-          db.upsertProfile(userId, { symptoms, onboardingComplete: true, lastActive: now }).catch(console.error);
+          db.upsertProfile(userId, { symptoms, onboardingComplete: true, lastActive: now, wakeTime, sleepTime }).catch(console.error);
           tasks.forEach((t) => db.insertTask(userId, t).catch(console.error));
         }
         track('onboarding_completed', { symptom_count: symptoms.length });
