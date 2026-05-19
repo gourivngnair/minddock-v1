@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import FrictionAudit from './FrictionAudit';
 import DatePicker from '../shared/DatePicker';
-import type { ScaffoldMaster, ScaffoldRecurrence } from '../../types';
+import type { ScaffoldMaster, ScaffoldRecurrence, UserEnergy } from '../../types';
 
 const SYMPTOMS = [
   { id: 'time-blindness',        label: 'Time Blindness',         icon: '⏰', desc: 'Tasks always take longer than expected' },
@@ -20,10 +20,10 @@ const FEATURES = [
   { icon: '🧩', title: 'Friction Scaffolds',    desc: 'Breaks overwhelming routines into sequential, completable steps' },
 ];
 
-type Step = 'welcome' | 'symptoms' | 'friction' | 'preview';
+type Step = 'welcome' | 'symptoms' | 'friction' | 'energy' | 'preview';
 
 function Dots({ step }: { step: Step }) {
-  const ORDER: Step[] = ['welcome', 'symptoms', 'friction', 'preview'];
+  const ORDER: Step[] = ['welcome', 'symptoms', 'friction', 'energy', 'preview'];
   const idx = ORDER.indexOf(step);
   return (
     <div className="row" style={{ gap: 6, justifyContent: 'center', padding: '0 0 4px' }}>
@@ -74,7 +74,7 @@ function ScaffoldPreview({
     <div className="onboard-wrap onboard-wrap--scroll-inner fade-in">
       <Dots step="preview" />
       <div>
-        <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 6 }}>STEP 3 OF 3</div>
+        <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 6 }}>STEP 4 OF 4</div>
         <div className="serif" style={{ fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.2, color: 'var(--charcoal)' }}>
           Schedule your scaffolds
         </div>
@@ -130,28 +130,119 @@ function ScaffoldPreview({
   );
 }
 
+const EC_COLORS: Record<number, string> = { 1: '#E24B4A', 2: '#EF9F27', 3: '#97C459', 4: '#378ADD', 5: '#534AB7' };
+const EC_LABELS: Record<number, string> = { 1: 'Very Low', 2: 'Low', 3: 'Medium', 4: 'High', 5: 'Very High' };
+const BASELINE_SLOTS = [
+  { hour: 5,  label: '5 am' },
+  { hour: 9,  label: '9 am' },
+  { hour: 13, label: '1 pm' },
+  { hour: 17, label: '5 pm' },
+  { hour: 21, label: '9 pm' },
+];
+
+function EnergyBaseline({
+  baseline, onChange, onNext, onBack,
+}: {
+  baseline: Record<number, UserEnergy>;
+  onChange: (hour: number, val: UserEnergy) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <div className="onboard-wrap fade-in">
+      <Dots step="energy" />
+      <div>
+        <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 6 }}>STEP 3 OF 4</div>
+        <div className="serif" style={{ fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.2, color: 'var(--charcoal)' }}>
+          How's your energy usually?
+        </div>
+        <p style={{ color: 'var(--ink-soft)', fontSize: 13.5, marginTop: 6, lineHeight: 1.6 }}>
+          Pick your typical energy at these times. This seeds your Patterns graph so it's useful from day one.
+        </p>
+      </div>
+
+      <div className="col" style={{ gap: 14, flex: 1 }}>
+        {BASELINE_SLOTS.map(({ hour, label }) => {
+          const val = baseline[hour];
+          return (
+            <div key={hour} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 46, flexShrink: 0, fontSize: 13, fontWeight: 600, color: 'var(--ink-soft)', textAlign: 'right' }}>{label}</div>
+              <div style={{ display: 'flex', gap: 6, flex: 1 }}>
+                {([1, 2, 3, 4, 5] as UserEnergy[]).map((lvl) => {
+                  const active = val === lvl;
+                  return (
+                    <button
+                      key={lvl}
+                      onClick={() => onChange(hour, lvl)}
+                      title={EC_LABELS[lvl]}
+                      style={{
+                        flex: 1, height: 36, borderRadius: 8, cursor: 'pointer',
+                        border: `2px solid ${active ? EC_COLORS[lvl] : 'var(--line)'}`,
+                        background: active ? EC_COLORS[lvl] : 'var(--paper2)',
+                        color: active ? '#fff' : EC_COLORS[lvl],
+                        fontSize: 12, fontWeight: 700, transition: 'all 0.12s',
+                      }}
+                    >
+                      {lvl}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ width: 54, flexShrink: 0, fontSize: 12, color: EC_COLORS[val], fontWeight: 600 }}>{EC_LABELS[val]}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="row" style={{ gap: 10 }}>
+        <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onBack}>← Back</button>
+        <button className="btn btn-primary" style={{ flex: 2 }} onClick={onNext}>Next →</button>
+      </div>
+    </div>
+  );
+}
+
 export default function OnboardingFlow() {
   const [step, setStep] = useState<Step>('welcome');
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [pendingScaffolds, setPendingScaffolds] = useState<Omit<ScaffoldMaster, 'id' | 'createdAt'>[]>([]);
+  const [baseline, setBaseline] = useState<Record<number, UserEnergy>>({ 5: 2, 9: 4, 13: 3, 17: 3, 21: 2 });
 
   const completeOnboarding = useStore((s) => s.completeOnboarding);
   const addScaffoldMaster  = useStore((s) => s.addScaffoldMaster);
+  const addEnergyLog       = useStore((s) => s.addEnergyLog);
 
   const toggleSymptom = (id: string) =>
     setSelectedSymptoms((prev) => prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]);
 
   const finish = (scheduled: Omit<ScaffoldMaster, 'id' | 'createdAt'>[]) => {
+    // Seed energy baseline as yesterday's readings
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    BASELINE_SLOTS.forEach(({ hour }) => {
+      const ts = new Date(yesterday);
+      ts.setHours(hour, 0, 0, 0);
+      addEnergyLog(baseline[hour], 'baseline', ts.toISOString());
+    });
     scheduled.forEach((m) => addScaffoldMaster(m));
     completeOnboarding(selectedSymptoms, []);
   };
 
   if (step === 'friction') return (
-    <FrictionAudit onDone={(scaffolds) => { setPendingScaffolds(scaffolds); setStep('preview'); }} />
+    <FrictionAudit onDone={(scaffolds) => { setPendingScaffolds(scaffolds); setStep('energy'); }} />
+  );
+
+  if (step === 'energy') return (
+    <EnergyBaseline
+      baseline={baseline}
+      onChange={(hour, val) => setBaseline((b) => ({ ...b, [hour]: val }))}
+      onNext={() => setStep('preview')}
+      onBack={() => setStep('friction')}
+    />
   );
 
   if (step === 'preview') return (
-    <ScaffoldPreview scaffolds={pendingScaffolds} onSubmit={finish} onBack={() => setStep('friction')} />
+    <ScaffoldPreview scaffolds={pendingScaffolds} onSubmit={finish} onBack={() => setStep('energy')} />
   );
 
   /* ── Welcome ── */
@@ -190,7 +281,7 @@ export default function OnboardingFlow() {
     <div className="onboard-wrap fade-in">
       <Dots step="symptoms" />
       <div>
-        <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 6 }}>STEP 1 OF 3</div>
+        <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 6 }}>STEP 1 OF 4</div>
         <div className="serif" style={{ fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.2, color: 'var(--charcoal)' }}>
           What challenges do you face?
         </div>

@@ -62,7 +62,7 @@ interface AppState {
   updateJournalEntry: (id: string, updates: Partial<JournalEntry>) => void;
   deleteJournalEntry: (id: string) => void;
 
-  addEnergyLog: (energy: UserEnergy, note?: string) => void;
+  addEnergyLog: (energy: UserEnergy, note?: string, createdAt?: string) => void;
   deleteEnergyLog: (id: string) => void;
 
   addMealLog: (meal: Omit<MealEntry, 'id' | 'createdAt'>) => void;
@@ -444,9 +444,9 @@ export const useStore = create<AppState>()(
         db.deleteJournalEntry(id).catch(console.error);
       },
 
-      addEnergyLog: (energy, note) => {
+      addEnergyLog: (energy, note, createdAt) => {
         const { userId } = get();
-        const log: EnergyLogEntry = { id: nanoid(), energy, note, createdAt: new Date().toISOString() };
+        const log: EnergyLogEntry = { id: nanoid(), energy, note, createdAt: createdAt ?? new Date().toISOString() };
         set((s) => ({ energyLogs: [log, ...s.energyLogs] }));
         if (userId) db.insertEnergyLog(userId, log).catch(console.error);
       },

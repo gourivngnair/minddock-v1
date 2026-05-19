@@ -12,143 +12,188 @@ const SYMPTOM_LABELS: Record<string, { label: string; icon: string }> = {
   'overwhelm':             { label: 'Overwhelm',              icon: '🌊' },
 };
 
-// Energy colors keyed 1-5
+// Energy colors per spec (1–5)
 const EC: Record<number, string> = {
-  1: '#c0392b', 2: '#c07820', 3: '#b88a2c', 4: '#3d6b4a', 5: '#2e90c0',
+  1: '#E24B4A', 2: '#EF9F27', 3: '#97C459', 4: '#378ADD', 5: '#534AB7',
 };
+
+const fmtH  = (h: number) => h === 12 ? '12p' : h < 12 ? `${h}a` : `${h - 12}p`;
+const fmtHF = (h: number) => h === 12 ? '12pm' : h < 12 ? `${h}am` : `${h - 12}pm`;
 
 /* ── Energy vs Time-of-Day chart ── */
 function EnergyTimeChart({ logs }: { logs: EnergyLogEntry[] }) {
+  const [view, setView] = useState<'average' | 'scatter'>('average');
+
   if (logs.length === 0) {
     return (
-      <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: '20px', textAlign: 'center' }}>
+      <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 14, padding: '20px', textAlign: 'center' }}>
         <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>⚡</div>
         <div className="tiny muted" style={{ lineHeight: 1.6 }}>
-          Set your energy level in Today view throughout the day<br/>to build this chart.
+          Set your energy level in Today view throughout the day<br />to build this chart.
         </div>
       </div>
     );
   }
 
-  // Aggregate: for each hour 5–23, collect all readings
-  const byHour: Record<number, number[]> = {};
+  /* ── Exponential decay aggregation ── */
+  const now  = new Date();
+  const HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 6–22
+
+  const byHour: Record<number, { wsum: number; wtotal: number }> = {};
   for (const log of logs) {
-    const h = new Date(log.createdAt).getHours();
-    if (h < 5 || h > 23) continue;
-    if (!byHour[h]) byHour[h] = [];
-    byHour[h].push(log.energy);
+    const h       = new Date(log.createdAt).getHours();
+    if (h < 6 || h > 22) continue;
+    const daysAgo = (now.getTime() - new Date(log.createdAt).getTime()) / 86_400_000;
+    const w       = Math.pow(0.9, daysAgo);
+    if (!byHour[h]) byHour[h] = { wsum: 0, wtotal: 0 };
+    byHour[h].wsum   += log.energy * w;
+    byHour[h].wtotal += w;
   }
 
-  const HOURS = Array.from({ length: 19 }, (_, i) => i + 5); // 5–23
-  const points = HOURS.map((h) => ({
-    h,
-    avg: byHour[h] ? byHour[h].reduce((s, v) => s + v, 0) / byHour[h].length : null,
-    count: byHour[h]?.length ?? 0,
+  const hourlyAvgs = HOURS.map((h) => ({
+    hour: h,
+    avg: byHour[h] ? Math.round((byHour[h].wsum / byHour[h].wtotal) * 10) / 10 : null,
   }));
 
-  const hasAny = points.some((p) => p.avg !== null);
-  if (!hasAny) return null;
+  const withData = hourlyAvgs.filter((p) => p.avg !== null) as { hour: number; avg: number }[];
+  if (withData.length === 0) return null;
 
-  // SVG dimensions
-  const W = 300, H = 90;
-  const PAD = { t: 8, b: 22, l: 18, r: 8 };
-  const iW = W - PAD.l - PAD.r;
-  const iH = H - PAD.t - PAD.b;
-  const xOf = (i: number) => PAD.l + (i / (HOURS.length - 1)) * iW;
+  /* ── Derived insights ── */
+  const peakHour = withData.reduce((a, b) => a.avg > b.avg ? a : b).hour;
+  const dipHour  = withData.reduce((a, b) => a.avg < b.avg ? a : b).hour;
+
+  /* ── Stat cards ── */
+  const totalW   = Object.values(byHour).reduce((s, h) => s + h.wtotal, 0);
+  const totalWS  = Object.values(byHour).reduce((s, h) => s + h.wsum, 0);
+  const avgEnergy = Math.round((totalWS / totalW) * 10) / 10;
+
+  /* ── SVG geometry ── */
+  const W = 320, H = 110;
+  const PAD = { t: 10, b: 26, l: 20, r: 10 };
+  const iW  = W - PAD.l - PAD.r;
+  const iH  = H - PAD.t - PAD.b;
+  const xOf = (h: number) => PAD.l + ((h - 6) / (22 - 6)) * iW;
   const yOf = (v: number) => PAD.t + iH - ((v - 1) / 4) * iH;
+  const bot  = PAD.t + iH;
 
-  // Build smooth line through non-null points
-  const pts = points.map((p, i) => p.avg !== null ? { x: xOf(i), y: yOf(p.avg), avg: p.avg } : null).filter(Boolean) as { x: number; y: number; avg: number }[];
-  let linePath = '';
-  for (let i = 0; i < pts.length; i++) {
-    if (i === 0) {
-      linePath = `M ${pts[0].x} ${pts[0].y}`;
+  /* ── Build contiguous segments (gaps where hour has no data) ── */
+  const segments: { hour: number; avg: number }[][] = [];
+  let cur: { hour: number; avg: number }[] = [];
+  for (const p of hourlyAvgs) {
+    if (p.avg !== null) {
+      cur.push({ hour: p.hour, avg: p.avg });
     } else {
-      const cpx = (pts[i - 1].x + pts[i].x) / 2;
-      linePath += ` C ${cpx} ${pts[i - 1].y}, ${cpx} ${pts[i].y}, ${pts[i].x} ${pts[i].y}`;
+      if (cur.length) { segments.push(cur); cur = []; }
     }
   }
-  const areaPath = pts.length > 1
-    ? `${linePath} L ${pts[pts.length - 1].x} ${H - PAD.b} L ${pts[0].x} ${H - PAD.b} Z`
-    : '';
+  if (cur.length) segments.push(cur);
 
-  // Time labels
-  const labelHours = [6, 9, 12, 15, 18, 21];
-  const fmtH = (h: number) => h === 12 ? '12p' : h < 12 ? `${h}a` : `${h - 12}p`;
+  const buildLine = (pts: { hour: number; avg: number }[]) => {
+    let d = '';
+    for (let i = 0; i < pts.length; i++) {
+      const x = xOf(pts[i].hour), y = yOf(pts[i].avg);
+      if (i === 0) { d = `M ${x} ${y}`; continue; }
+      const cpx = (xOf(pts[i-1].hour) + x) / 2;
+      d += ` C ${cpx} ${yOf(pts[i-1].avg)}, ${cpx} ${y}, ${x} ${y}`;
+    }
+    return d;
+  };
+
+  /* ── Scatter points ── */
+  const scatter = logs.flatMap((log) => {
+    const h = new Date(log.createdAt).getHours();
+    if (h < 6 || h > 22) return [];
+    return [{ x: xOf(h), y: yOf(log.energy), e: log.energy }];
+  });
+
+  const LABEL_H = [6, 9, 12, 15, 18, 21];
+
+  const chipStyle = (active: boolean): React.CSSProperties => ({
+    padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+    border: `1.5px solid ${active ? 'var(--slate-blue)' : 'var(--line)'}`,
+    background: active ? 'var(--slate-blue-soft)' : 'var(--paper2)',
+    color: active ? 'var(--slate-blue-deep)' : 'var(--ink-soft)',
+    transition: 'all 0.1s',
+  });
 
   return (
-    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: '14px 14px 10px' }}>
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 14, padding: '14px 14px 12px' }}>
+
+      {/* Toggle */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        <button style={chipStyle(view === 'average')} onClick={() => setView('average')}>Average</button>
+        <button style={chipStyle(view === 'scatter')} onClick={() => setView('scatter')}>All readings</button>
+      </div>
+
+      {/* Chart */}
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}>
-        {/* Y grid lines */}
+
+        {/* Y grid + labels */}
         {[1, 2, 3, 4, 5].map((v) => {
           const y = yOf(v);
           return (
             <g key={v}>
-              <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y} stroke="#f0ece6" strokeWidth="1" />
-              <text x={PAD.l - 3} y={y + 3} fill="#9c9690" fontSize="6.5" textAnchor="end">{v}</text>
+              <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y} stroke="var(--line-soft)" strokeWidth="1" />
+              <text x={PAD.l - 4} y={y + 3.5} fill="var(--ink-faint)" fontSize="7" textAnchor="end">{v}</text>
             </g>
           );
         })}
 
-        {/* Area fill */}
-        {areaPath && <path d={areaPath} fill="var(--slate-blue)" fillOpacity="0.07" />}
-
-        {/* Bar columns for hours with data */}
-        {points.map((p, i) => {
-          if (p.avg === null) return null;
-          const x = xOf(i);
-          const bW = Math.max(3, iW / HOURS.length - 3);
-          const bH = ((p.avg - 1) / 4) * iH;
+        {view === 'average' && segments.map((seg, si) => {
+          const lp = buildLine(seg);
+          const ap = seg.length > 1
+            ? `${lp} L ${xOf(seg[seg.length-1].hour)} ${bot} L ${xOf(seg[0].hour)} ${bot} Z`
+            : '';
           return (
-            <rect
-              key={i}
-              x={x - bW / 2}
-              y={yOf(p.avg)}
-              width={bW}
-              height={bH}
-              fill={EC[Math.round(p.avg)]}
-              fillOpacity="0.22"
-              rx="2"
-            />
+            <g key={si}>
+              {ap && <path d={ap} fill="var(--slate-blue)" fillOpacity="0.07" />}
+              {seg.length > 1 && <path d={lp} fill="none" stroke="var(--slate-blue)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+              {seg.map((p) => (
+                <circle key={p.hour} cx={xOf(p.hour)} cy={yOf(p.avg)} r={4}
+                  fill={EC[Math.round(p.avg)]} stroke="#fff" strokeWidth="1.5" />
+              ))}
+            </g>
           );
         })}
 
-        {/* Smooth line */}
-        {pts.length > 1 && (
-          <path d={linePath} fill="none" stroke="var(--slate-blue)" strokeWidth="2" strokeLinecap="round" />
-        )}
-
-        {/* Dots */}
-        {pts.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={pts.length > 15 ? 2.5 : 3.5}
-            fill={EC[Math.round(p.avg)]} stroke="#fff" strokeWidth="1.5" />
+        {view === 'scatter' && scatter.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r={3.5}
+            fill={EC[p.e]} fillOpacity="0.75" stroke="#fff" strokeWidth="1" />
         ))}
 
-        {/* X-axis time labels */}
-        {points.map((p, i) => {
-          if (!labelHours.includes(p.h)) return null;
-          return (
-            <text key={i} x={xOf(i)} y={H - 4} fill="#9c9690" fontSize="7" textAnchor="middle">
-              {fmtH(p.h)}
-            </text>
-          );
-        })}
+        {/* X-axis labels */}
+        {LABEL_H.map((h) => (
+          <text key={h} x={xOf(h)} y={H - 6} fill="var(--ink-faint)" fontSize="7.5" textAnchor="middle">
+            {fmtH(h)}
+          </text>
+        ))}
       </svg>
 
-      {/* Legend row */}
-      <div className="row" style={{ gap: 10, marginTop: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-        {[1, 2, 3, 4, 5].map((v) => (
-          <div key={v} className="row" style={{ gap: 4 }}>
-            <div style={{ width: 8, height: 8, borderRadius: 2, background: EC[v] }} />
-            <span style={{ fontSize: '0.63rem', color: 'var(--ink-muted)' }}>
-              {['Drained', 'Low', 'Steady', 'Decent', 'Sparked'][v - 1]}
-            </span>
+      {/* Insight annotation chips */}
+      {withData.length >= 2 && (
+        <div style={{ display: 'flex', gap: 7, marginTop: 10, flexWrap: 'wrap' }}>
+          <div style={{ padding: '4px 10px', borderRadius: 99, background: `${EC[5]}15`, border: `1px solid ${EC[5]}40`, fontSize: 11, fontWeight: 700, color: EC[5] }}>
+            ↑ Peak: {fmtHF(peakHour)}–{fmtHF(Math.min(23, peakHour + 2))}
+          </div>
+          <div style={{ padding: '4px 10px', borderRadius: 99, background: `${EC[1]}15`, border: `1px solid ${EC[1]}40`, fontSize: 11, fontWeight: 700, color: EC[1] }}>
+            ↓ Dip: {fmtHF(dipHour)}–{fmtHF(Math.min(23, dipHour + 2))}
+          </div>
+        </div>
+      )}
+
+      {/* Stat cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginTop: 10 }}>
+        {[
+          { label: 'Avg Energy', value: avgEnergy.toFixed(1) },
+          { label: 'Peak',       value: withData.length ? fmtHF(peakHour) : '—' },
+          { label: 'Dip',        value: withData.length ? fmtHF(dipHour)  : '—' },
+          { label: 'Readings',   value: String(logs.length) },
+        ].map((s) => (
+          <div key={s.label} style={{ background: 'var(--paper2)', borderRadius: 10, padding: '8px 10px', textAlign: 'center' }}>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 14, color: 'var(--charcoal)', lineHeight: 1 }}>{s.value}</div>
+            <div className="tiny muted" style={{ marginTop: 3 }}>{s.label}</div>
           </div>
         ))}
-      </div>
-
-      <div className="tiny muted" style={{ marginTop: 6, textAlign: 'center' }}>
-        Based on {logs.length} reading{logs.length !== 1 ? 's' : ''} · bars show hours with data
       </div>
     </div>
   );

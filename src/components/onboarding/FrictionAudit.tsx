@@ -49,7 +49,7 @@ export default function FrictionAudit({ onDone }: Props) {
   return (
     <div className="onboard-wrap fade-in">
       <div>
-        <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 6 }}>STEP 2 OF 3</div>
+        <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 6 }}>STEP 2 OF 4</div>
         <div className="serif" style={{ fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.2, color: 'var(--charcoal)' }}>
           What's been piling up?
         </div>
