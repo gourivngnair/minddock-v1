@@ -26,8 +26,9 @@ function EnergyTimeChart({ logs }: { logs: EnergyLogEntry[] }) {
 
   if (logs.length === 0) {
     return (
-      <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 14, padding: '20px', textAlign: 'center' }}>
-        <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>⚡</div>
+      <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 14, padding: '24px', textAlign: 'center' }}>
+        <div style={{ fontSize: '2rem', marginBottom: 8 }}>⚡</div>
+        <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--charcoal)', marginBottom: 4 }}>No energy data yet</div>
         <div className="tiny muted" style={{ lineHeight: 1.6 }}>
           Set your energy level in Today view throughout the day<br />to build this chart.
         </div>
@@ -36,7 +37,7 @@ function EnergyTimeChart({ logs }: { logs: EnergyLogEntry[] }) {
   }
 
   /* ── Exponential decay aggregation ── */
-  const now  = new Date();
+  const now   = new Date();
   const HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 6–22
 
   const byHour: Record<number, { wsum: number; wtotal: number }> = {};
@@ -61,22 +62,23 @@ function EnergyTimeChart({ logs }: { logs: EnergyLogEntry[] }) {
   /* ── Derived insights ── */
   const peakHour = withData.reduce((a, b) => a.avg > b.avg ? a : b).hour;
   const dipHour  = withData.reduce((a, b) => a.avg < b.avg ? a : b).hour;
+  const peakAvg  = withData.reduce((a, b) => a.avg > b.avg ? a : b).avg;
 
   /* ── Stat cards ── */
-  const totalW   = Object.values(byHour).reduce((s, h) => s + h.wtotal, 0);
-  const totalWS  = Object.values(byHour).reduce((s, h) => s + h.wsum, 0);
+  const totalW    = Object.values(byHour).reduce((s, h) => s + h.wtotal, 0);
+  const totalWS   = Object.values(byHour).reduce((s, h) => s + h.wsum, 0);
   const avgEnergy = Math.round((totalWS / totalW) * 10) / 10;
 
   /* ── SVG geometry ── */
-  const W = 320, H = 110;
-  const PAD = { t: 10, b: 26, l: 20, r: 10 };
+  const W = 340, H = 130;
+  const PAD = { t: 14, b: 28, l: 28, r: 12 };
   const iW  = W - PAD.l - PAD.r;
   const iH  = H - PAD.t - PAD.b;
   const xOf = (h: number) => PAD.l + ((h - 6) / (22 - 6)) * iW;
   const yOf = (v: number) => PAD.t + iH - ((v - 1) / 4) * iH;
   const bot  = PAD.t + iH;
 
-  /* ── Build contiguous segments (gaps where hour has no data) ── */
+  /* ── Build contiguous segments ── */
   const segments: { hour: number; avg: number }[][] = [];
   let cur: { hour: number; avg: number }[] = [];
   for (const p of hourlyAvgs) {
@@ -107,6 +109,8 @@ function EnergyTimeChart({ logs }: { logs: EnergyLogEntry[] }) {
   });
 
   const LABEL_H = [6, 9, 12, 15, 18, 21];
+  const gradTop = yOf(5);
+  const gradBot = yOf(1);
 
   const chipStyle = (active: boolean): React.CSSProperties => ({
     padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600, cursor: 'pointer',
@@ -120,25 +124,43 @@ function EnergyTimeChart({ logs }: { logs: EnergyLogEntry[] }) {
     <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 14, padding: '14px 14px 12px' }}>
 
       {/* Toggle */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
         <button style={chipStyle(view === 'average')} onClick={() => setView('average')}>Average</button>
         <button style={chipStyle(view === 'scatter')} onClick={() => setView('scatter')}>All readings</button>
       </div>
 
       {/* Chart */}
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}>
+        <defs>
+          {/* Vertical energy gradient: level 5 purple (top) → level 1 red (bottom) */}
+          <linearGradient id="ec-line" gradientUnits="userSpaceOnUse" x1={0} y1={gradTop} x2={0} y2={gradBot}>
+            <stop offset="0%"   stopColor="#534AB7" />
+            <stop offset="25%"  stopColor="#378ADD" />
+            <stop offset="50%"  stopColor="#97C459" />
+            <stop offset="75%"  stopColor="#EF9F27" />
+            <stop offset="100%" stopColor="#E24B4A" />
+          </linearGradient>
+          <linearGradient id="ec-fill" gradientUnits="userSpaceOnUse" x1={0} y1={gradTop} x2={0} y2={gradBot}>
+            <stop offset="0%"   stopColor="#534AB7" stopOpacity={0.22} />
+            <stop offset="40%"  stopColor="#97C459" stopOpacity={0.12} />
+            <stop offset="100%" stopColor="#E24B4A" stopOpacity={0.03} />
+          </linearGradient>
+        </defs>
 
-        {/* Y grid + labels */}
+        {/* Y grid lines + EC-colored labels */}
         {[1, 2, 3, 4, 5].map((v) => {
           const y = yOf(v);
           return (
             <g key={v}>
-              <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y} stroke="var(--line-soft)" strokeWidth="1" />
-              <text x={PAD.l - 4} y={y + 3.5} fill="var(--ink-faint)" fontSize="7" textAnchor="end">{v}</text>
+              <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y}
+                stroke={v === 3 ? '#dedad4' : '#eeecea'}
+                strokeWidth="1" strokeDasharray={v === 3 ? '0' : '3,3'} />
+              <text x={PAD.l - 5} y={y + 3.5} fill={EC[v]} fontSize="8" fontWeight="700" textAnchor="end">{v}</text>
             </g>
           );
         })}
 
+        {/* Average view: gradient bezier line + filled area */}
         {view === 'average' && segments.map((seg, si) => {
           const lp = buildLine(seg);
           const ap = seg.length > 1
@@ -146,51 +168,54 @@ function EnergyTimeChart({ logs }: { logs: EnergyLogEntry[] }) {
             : '';
           return (
             <g key={si}>
-              {ap && <path d={ap} fill="var(--slate-blue)" fillOpacity="0.07" />}
-              {seg.length > 1 && <path d={lp} fill="none" stroke="var(--slate-blue)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+              {ap && <path d={ap} fill="url(#ec-fill)" />}
+              {seg.length > 1 && (
+                <path d={lp} fill="none" stroke="url(#ec-line)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              )}
               {seg.map((p) => (
-                <circle key={p.hour} cx={xOf(p.hour)} cy={yOf(p.avg)} r={4}
-                  fill={EC[Math.round(p.avg)]} stroke="#fff" strokeWidth="1.5" />
+                <circle key={p.hour} cx={xOf(p.hour)} cy={yOf(p.avg)} r={5}
+                  fill={EC[Math.round(p.avg)]} stroke="#fff" strokeWidth="2" />
               ))}
             </g>
           );
         })}
 
+        {/* Scatter view */}
         {view === 'scatter' && scatter.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={3.5}
-            fill={EC[p.e]} fillOpacity="0.75" stroke="#fff" strokeWidth="1" />
+          <circle key={i} cx={p.x} cy={p.y} r={4}
+            fill={EC[p.e]} fillOpacity={0.85} stroke="#fff" strokeWidth="1.5" />
         ))}
 
         {/* X-axis labels */}
         {LABEL_H.map((h) => (
-          <text key={h} x={xOf(h)} y={H - 6} fill="var(--ink-faint)" fontSize="7.5" textAnchor="middle">
+          <text key={h} x={xOf(h)} y={H - 7} fill="var(--ink-muted)" fontSize="8" fontWeight="500" textAnchor="middle">
             {fmtH(h)}
           </text>
         ))}
       </svg>
 
-      {/* Insight annotation chips */}
+      {/* Insight chips — spec labels */}
       {withData.length >= 2 && (
         <div style={{ display: 'flex', gap: 7, marginTop: 10, flexWrap: 'wrap' }}>
-          <div style={{ padding: '4px 10px', borderRadius: 99, background: `${EC[5]}15`, border: `1px solid ${EC[5]}40`, fontSize: 11, fontWeight: 700, color: EC[5] }}>
-            ↑ Peak: {fmtHF(peakHour)}–{fmtHF(Math.min(23, peakHour + 2))}
+          <div style={{ padding: '4px 10px', borderRadius: 99, background: `${EC[Math.round(peakAvg)]}18`, border: `1px solid ${EC[Math.round(peakAvg)]}50`, fontSize: 11.5, fontWeight: 700, color: EC[Math.round(peakAvg)] }}>
+            ↑ Peak window: {fmtHF(peakHour)}–{fmtHF(Math.min(23, peakHour + 2))}
           </div>
-          <div style={{ padding: '4px 10px', borderRadius: 99, background: `${EC[1]}15`, border: `1px solid ${EC[1]}40`, fontSize: 11, fontWeight: 700, color: EC[1] }}>
-            ↓ Dip: {fmtHF(dipHour)}–{fmtHF(Math.min(23, dipHour + 2))}
+          <div style={{ padding: '4px 10px', borderRadius: 99, background: `${EC[1]}15`, border: `1px solid ${EC[1]}40`, fontSize: 11.5, fontWeight: 700, color: EC[1] }}>
+            ↓ Typical dip: {fmtHF(dipHour)}–{fmtHF(Math.min(23, dipHour + 2))}
           </div>
         </div>
       )}
 
-      {/* Stat cards */}
+      {/* Stat cards — each tinted with its relevant color */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginTop: 10 }}>
         {[
-          { label: 'Avg Energy', value: avgEnergy.toFixed(1) },
-          { label: 'Peak',       value: withData.length ? fmtHF(peakHour) : '—' },
-          { label: 'Dip',        value: withData.length ? fmtHF(dipHour)  : '—' },
-          { label: 'Readings',   value: String(logs.length) },
+          { label: 'Avg Energy', value: avgEnergy.toFixed(1), color: EC[Math.round(avgEnergy)] ?? EC[3], bg: `${EC[Math.round(avgEnergy)] ?? EC[3]}14` },
+          { label: 'Peak',       value: fmtHF(peakHour),       color: EC[5],                              bg: `${EC[5]}14` },
+          { label: 'Dip',        value: fmtHF(dipHour),         color: EC[1],                              bg: `${EC[1]}14` },
+          { label: 'Readings',   value: String(logs.length),    color: '#378ADD',                          bg: '#378ADD14' },
         ].map((s) => (
-          <div key={s.label} style={{ background: 'var(--paper2)', borderRadius: 10, padding: '8px 10px', textAlign: 'center' }}>
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 14, color: 'var(--charcoal)', lineHeight: 1 }}>{s.value}</div>
+          <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.color}35`, borderRadius: 10, padding: '8px 8px', textAlign: 'center' }}>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 14, color: s.color, lineHeight: 1 }}>{s.value}</div>
             <div className="tiny muted" style={{ marginTop: 3 }}>{s.label}</div>
           </div>
         ))}

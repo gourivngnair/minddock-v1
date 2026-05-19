@@ -23,7 +23,7 @@ const FEATURES = [
 type Step = 'welcome' | 'symptoms' | 'friction' | 'energy' | 'preview';
 
 function Dots({ step }: { step: Step }) {
-  const ORDER: Step[] = ['welcome', 'symptoms', 'friction', 'energy', 'preview'];
+  const ORDER: Step[] = ['welcome', 'symptoms', 'friction', 'preview', 'energy'];
   const idx = ORDER.indexOf(step);
   return (
     <div className="row" style={{ gap: 6, justifyContent: 'center', padding: '0 0 4px' }}>
@@ -74,7 +74,7 @@ function ScaffoldPreview({
     <div className="onboard-wrap onboard-wrap--scroll-inner fade-in">
       <Dots step="preview" />
       <div>
-        <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 6 }}>STEP 4 OF 4</div>
+        <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 6 }}>STEP 3 OF 4</div>
         <div className="serif" style={{ fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.2, color: 'var(--charcoal)' }}>
           Schedule your scaffolds
         </div>
@@ -152,7 +152,7 @@ function EnergyBaseline({
     <div className="onboard-wrap fade-in">
       <Dots step="energy" />
       <div>
-        <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 6 }}>STEP 3 OF 4</div>
+        <div className="tiny mono soft" style={{ letterSpacing: '0.08em', marginBottom: 6 }}>STEP 4 OF 4</div>
         <div className="serif" style={{ fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.2, color: 'var(--charcoal)' }}>
           How's your energy usually?
         </div>
@@ -196,7 +196,7 @@ function EnergyBaseline({
 
       <div className="row" style={{ gap: 10 }}>
         <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onBack}>← Back</button>
-        <button className="btn btn-primary" style={{ flex: 2 }} onClick={onNext}>Next →</button>
+        <button className="btn btn-primary" style={{ flex: 2 }} onClick={onNext}>Finish setup →</button>
       </div>
     </div>
   );
@@ -205,7 +205,8 @@ function EnergyBaseline({
 export default function OnboardingFlow() {
   const [step, setStep] = useState<Step>('welcome');
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
-  const [pendingScaffolds, setPendingScaffolds] = useState<Omit<ScaffoldMaster, 'id' | 'createdAt'>[]>([]);
+  const [pendingScaffolds, setPendingScaffolds]   = useState<Omit<ScaffoldMaster, 'id' | 'createdAt'>[]>([]);
+  const [scheduledScaffolds, setScheduledScaffolds] = useState<Omit<ScaffoldMaster, 'id' | 'createdAt'>[]>([]);
   const [baseline, setBaseline] = useState<Record<number, UserEnergy>>({ 5: 2, 9: 4, 13: 3, 17: 3, 21: 2 });
 
   const completeOnboarding = useStore((s) => s.completeOnboarding);
@@ -215,8 +216,7 @@ export default function OnboardingFlow() {
   const toggleSymptom = (id: string) =>
     setSelectedSymptoms((prev) => prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]);
 
-  const finish = (scheduled: Omit<ScaffoldMaster, 'id' | 'createdAt'>[]) => {
-    // Seed energy baseline as yesterday's readings
+  const finish = () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     BASELINE_SLOTS.forEach(({ hour }) => {
@@ -224,25 +224,29 @@ export default function OnboardingFlow() {
       ts.setHours(hour, 0, 0, 0);
       addEnergyLog(baseline[hour], 'baseline', ts.toISOString());
     });
-    scheduled.forEach((m) => addScaffoldMaster(m));
+    scheduledScaffolds.forEach((m) => addScaffoldMaster(m));
     completeOnboarding(selectedSymptoms, []);
   };
 
   if (step === 'friction') return (
-    <FrictionAudit onDone={(scaffolds) => { setPendingScaffolds(scaffolds); setStep('energy'); }} />
+    <FrictionAudit onDone={(scaffolds) => { setPendingScaffolds(scaffolds); setStep('preview'); }} />
+  );
+
+  if (step === 'preview') return (
+    <ScaffoldPreview
+      scaffolds={pendingScaffolds}
+      onSubmit={(scheduled) => { setScheduledScaffolds(scheduled); setStep('energy'); }}
+      onBack={() => setStep('friction')}
+    />
   );
 
   if (step === 'energy') return (
     <EnergyBaseline
       baseline={baseline}
       onChange={(hour, val) => setBaseline((b) => ({ ...b, [hour]: val }))}
-      onNext={() => setStep('preview')}
-      onBack={() => setStep('friction')}
+      onNext={finish}
+      onBack={() => setStep('preview')}
     />
-  );
-
-  if (step === 'preview') return (
-    <ScaffoldPreview scaffolds={pendingScaffolds} onSubmit={finish} onBack={() => setStep('energy')} />
   );
 
   /* ── Welcome ── */
