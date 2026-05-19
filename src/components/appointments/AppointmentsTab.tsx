@@ -186,7 +186,7 @@ export default function AppointmentsTab() {
         ))}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 18px 110px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="page-scroll" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {visible.length === 0 && (
           <div className="empty-state">
             <div className="serif" style={{ fontSize: 17, marginBottom: 6 }}>

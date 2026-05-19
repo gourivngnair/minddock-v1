@@ -294,7 +294,7 @@ export default function TasksTab() {
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 18px 110px' }}>
+      <div className="page-scroll">
 
       {/* ══ SCAFFOLDS VIEW ══ */}
       {view === 'scaffolds' && (

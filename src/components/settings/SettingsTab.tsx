@@ -88,7 +88,7 @@ export default function SettingsTab() {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '6px 18px 110px' }}>
+      <div className="page-scroll" style={{ paddingTop: 6 }}>
 
         {/* Profile card */}
         <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 16, padding: '18px', marginBottom: 20 }}>

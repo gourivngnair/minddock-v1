@@ -320,7 +320,7 @@ export default function PatternsTab() {
         ))}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px 110px' }}>
+      <div className="page-scroll" style={{ paddingTop: 14 }}>
 
         {activeSection === 'insights' && (
           <div className="col" style={{ gap: 14 }}>
